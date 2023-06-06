@@ -1,10 +1,10 @@
-# Research Paper Compilation: A Painless Multi-level Automatic Goal-Oriented $hp$-Adaptive Coarsening Strategy for Elliptic and non-Elliptic Problems
+# A Painless Multi-level Automatic Goal-Oriented $hp$-Adaptive Coarsening Strategy for Elliptic and non-Elliptic Problems
 
 This repository contains the LaTeX code for compiling the research paper titled "A Painless Multi-level Automatic Goal-Oriented $hp$-Adaptive Coarsening Strategy for Elliptic and non-Elliptic Problems." The paper can be accessed [here](https://www.sciencedirect.com/science/article/pii/S0045782522005965).
 
 ## Introduction
 
-The research paper presents a novel approach for achieving multi-level automatic goal-oriented $hp$-adaptive coarsening in the context of solving elliptic and non-elliptic problems. It proposes a strategy that simplifies the process and minimizes the effort required for achieving highly efficient mesh coarsening.
+The research paper presents a novel approach for achieving multi-level automatic goal-oriented adaptive coarsening in solving elliptic and non-elliptic problems. It proposes a strategy that simplifies the process and minimizes the effort required for achieving highly efficient mesh coarsening.
 
 ## Instructions
 
