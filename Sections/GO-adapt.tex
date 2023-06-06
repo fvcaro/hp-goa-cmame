@@ -1,0 +1,607 @@
+% !TEX root =  ../unref_general.tex
+\section{Adaptivity}
+\label{sec:GO-adapt}
+This section aims to describe our adaptive strategy. The starting point is to define properly our problem, which is expressed as an abstract variational formulation. For $d \in \{2, 3\}$, let $\Omega\subset \R^{d}$ be an open bounded domain with a Lipschitz-continuous boundary $\partial \Omega$ with $\partial \Omega \coloneqq \Gamma_{D} \cup \Gamma_{N}$, and $\H \coloneqq \H(\Omega)$ be a Hilbert functional space on $\Omega$ (simply denoted $\H$ in the following). Thus, for a given bilinear continuous form $b$ defined on $\H \times \H$, the weak formulation reads as follows:
+\begin{var_for}
+  Find $u \in \H$ such that
+  \begin{equation}
+    \label{eq:direct1}
+    b(u,\phi)=f(\phi), \quad \forall \phi\in \H.
+  \end{equation}
+\end{var_for}
+\noindent We define $\H_{\calF} \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{\calF}}\}$ as the finite element space, where $\calF = \{ \phi_{i} \}_{i=1}^{n_{\calF}}$ is a set of basis functions $\phi_i$ and $n_{\calF} = \textrm{dim}(\H_{\calF})$, such that the discrete formulation in $\H_{\calF} \subset \H$ reads as follows:
+\begin{var_for}
+  Find $u_{\calF} \in \H_{\calF}$ such that
+  \begin{equation}
+    \label{eq:directH1}
+    b(u_{\calF},\phi_{\calF}) = f(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF},
+  \end{equation}
+\end{var_for}
+\noindent where $u_{\calF}$ is the Galerkin approximation in $\H_{\calF}$.
+
+Adaptive \acp{FEM} aim to provide low discretization errors (and therefore accurate results) with a reduced computational cost. To do so, in this work, we employ the algorithm introduced in \cite{darrigrand2020painless}, which iterates along with the following two steps: (1) for a given $hp$-grid, we first perform a global and uniform arbitrary ($h$ or $p$) refinement, and (2) we then perform a (quasi)-optimal $hp$-unrefinement step. In our particular implementation, we alternate global $h$-refinement with global $p=p+2$ refinement in each iteration. Algorithm 1 illustrates this idea.
+
+\SetKwRepeat{Do}{do}{end}%
+
+\begin{algorithm}
+  \SetAlgoLined
+  \KwIn{$\calT$ a given initial mesh}
+  \KwOut{$\calT$ a final adapted mesh}
+
+  \While{ $\textrm{error}$ $>$ $\varepsilon$}{
+    Perform a global and uniform ($h$ or $p$) refinement\;
+    Update the $\textrm{error}$\;
+    Execute the coarsening step (Algorithm 2) to the mesh\;
+  }
+  \caption{Adaptive process}
+\end{algorithm}
+
+\begin{algorithm}
+  \SetAlgoLined
+  \KwIn{$\calT$ given mesh.}
+  \KwOut{$\calT$ adapted mesh.}
+
+  \Do{ }{
+    Solve the problem on $\calT$\;
+    Computation of the element-wise error indicators\;
+    Mark and remove the basis functions whose indicators are relatively small\;
+    Unrefine $\calT$\;
+    If nothing has been marked, escape\;
+  }
+  \caption{Firing policy}
+\end{algorithm}
+
+Following Darrigrand's philosophy \cite{darrigrand2020painless}, Algorithm 2 describes our $hp$-unrefinement policy: (a) at each iteration, we compute the solution; (b) we find the removable basis functions out and calculate their contribution to the solution; (c) we mark the basis functions whose indicators are relatively small; (d) we remove the basis functions whose contributions to the solution are below a portion of the average; (e) and finally, we update the mesh. For details about implementing these quantities, we refer the reader to \cite{darrigrand2020painless}.
+
+\subsection{Projectors}
+Let $ \H_{\calE}  \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{\calE}}\}$ be a finite element space, where $\calE = \{ \phi_{i} \}_{i=1}^{n_{\calE}}$ is a set of  \emph{essential} basis functions such that $\calE \subset \calF$. Besides, we consider $u_{\calE}$ as the Galerkin approximation in $\H_{\calE}$.
+
+Following the idea of \emph{removable} basis functions introduced in \cref{subsec:Removable}, at each $hp$-unrefinement step (Algorithm 2), we define $\H_{R_{\textrm{m}}} \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{R_{\textrm{m}}}}\}$, where $R_{\textrm{m}}$ are those basis functions satisfying $R_{\textrm{m}} \coloneqq \calF \, \setminus \, \calE$. We recall $\H_{\calE} \subset \H_{\calF}$, $\H_{R_{\textrm{m}}} \subset \H_{\calF}$, and $\H_{\calF} = \H_{\calE} \cup \H_{R_{\textrm{m}}}$ with $\H_{\calE}\cap \H_{R_{\textrm{m}}} = \emptyset$. However, due to our $hp$-unrefinement strategy, we are not able to compute $u_{\calE}$. Then, let us define the projection of $u_{\calF}$ into $\calE$ by using a \emph{projection operator} $\Pi_{\calF}^{\calE}$: $\H _{\calF} \longrightarrow \H_{\calF}$, which satisfies
+
+\begin{equation}
+  \Pi_{\calF}^{\calE} u_{\calF} := \sum_{\phi_{i} \in \calE} u_{i} \phi_{i}.
+\end{equation}
+Similarly,
+\begin{equation}
+  \Pi_{\calF}^{R_{\textrm{m}}} u_{\calF} := \sum_{\phi_{i} \notin \calE} u_{i} \phi_{i}.
+\end{equation}
+
+\noindent By doing so, we express $u_{\calF}$, the finite element solution in $\H_{\calF}$, as follows:
+\begin{equation}
+  u_{\calF} \coloneqq  \underbrace{\sum_{\phi_{j} \in \calE} u_{j} \phi_{j}}_{\Pi_{\calF}^{\calE} u_{\calF}} + \underbrace{\sum_{\phi_{j} \notin \calE} u_{ j} \phi_{j}}_{\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}}.
+\end{equation}
+
+\subsection{Error indicators}
+\subsubsection{Elliptic problems}
+Our strategy aims to measure how much energy we lose by removing a small number of basis functions of the solution. Let us define $b$ as a continuous and elliptic form. Then, based on Dirichlet's Principle, the energy reads as follows:
+\begin{equation}
+  \label{eq:energy}
+  E(u) \coloneqq \frac{1}{2} b(u, u) - f(u), \forall u \in \H.
+\end{equation}
+
+The main objective is to quantify the energy of the error $\abs{E(u_{\calF} - u_{\calE})}$. Following Darrigrand's work \cite{darrigrand2020painless}, and since $E(u_{\calE}) \leq E(\Pi_{\calF}^{\calE} u_{\calF})$, we obtain
+\begin{align}
+  \abs{E(u_{\calF} - u_{\calE})} & \leq \abs{E(\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF})},          \\
+                                 & = \abs{\frac{1}{2} b(\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF})}.
+\end{align}
+
+\subsubsection{Extension to non-elliptic  case}
+In case that $b$ does not define a proper inner product in $\H_{\calF}$ (i.e. b is not elliptic), then we assume that we are able to construct a $\hat{b}$, an inner product in $\H_{\calF}$, satisfying
+
+\begin{equation}
+  \label{eq:alternativeb}
+  \abs{b(u,u)} \leq \norm{u}_{\hat{b}}^2, \forall u \in \H.
+\end{equation}
+
+\subsubsection{Extension to Goal-Oriented}
+Goal-oriented adaptive \acp{FEM} aim to approximate quantities of finite element solutions. These quantities are often known as \acp{QoI} and are characterized as linear functionals of the solutions. Then, the main objective is to produce a space $\H_{\calF}$ with minimum dimension such that the error in the \ac{QoI} is below a user-prescribed tolerance.
+
+Let $l: \H \longrightarrow \R$ be a given linear bounded functional such that $l(u_{\calF} - u_{\calE})$ is below a user-prescribed tolerance. To estimate that error, we introduce a dual problem \cite{prudhomme1999goal,oden2001goal} as follows:
+\begin{var_for}
+  Find $v \in \H$ such that
+  \begin{equation}
+    \label{eq:adjoint}
+    b(\phi,v)=l(\phi), \quad \forall \phi\in \H,
+  \end{equation}
+\end{var_for}
+\noindent and its discrete equivalent
+\begin{var_for}
+  Find $v_{\calF}\in \H_{\calF}$ such that
+  \begin{equation}
+    \label{eq:adjointH}
+    b(\phi_{\calF},v_{\calF})=l(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF},
+  \end{equation}
+\end{var_for}
+\noindent  where $v_{\calF}$ stands for the Galerkin approximation of the dual problem solution $v$ associated with space $\H_{\calF}$.
+
+To control $l(u_{\calF} - u_{\calE})$, we propose an upper bound of the error representation expressed in terms of an inner product in $\H_{\calF}$. To do so, we introduce an inner product $\hat{b}$, similarly to \cref{eq:alternativeb}. This way, we express energy contributions in terms of an inner product $\hat{b}$ associated with the bilinear form $b$ of the problem.
+
+Since $\calE \subset \calF$, Galerkin orthogonality provides
+\begin{equation}
+  b(u_{\calF} - u_{\calE},v_{\calE})=b(u_{\calF},v_{\calE})-b(u_{\calE},v_{\calE})=f(v_{\calE})-f(v_{\calE})=0.
+\end{equation}
+
+\noindent Thus, by using \cref{eq:adjointH}, we obtain
+\begin{equation}
+  \label{eq:errQoi}
+  \abs{l(u_{\calF}) - l(u_{\calE})} = \abs{b(u_{\calF} - u_{\calE}, v_{\calF})}= \abs{b(u_{\calF} - u_{\calE}, v_{\calF} - v_{\calE})} \leq \norm{u_{\calF}-u_{\calE}}_{\hat{b}}\norm{v_{\calF}-v_{\calE}}_{\hat{b}}.
+\end{equation}
+\noindent with $\hat{b}$, an inner product in $\H_{\calF}$. Nevertheless, we are not able to compute $u_{\calE}$ nor $v_{\calE}$. Then, by introducing the projection of $u_{\calF}$ into $\calE$, we obtain
+\begin{equation}
+  \label{eq:errQoi}
+  \abs{l(u_{\calF}) - l(u_{\calE})} = \abs{b(u_{\calF} - \Pi_{\calF}^{\calE} u_{\calF} + \Pi_{\calF}^{\calE} u_{\calF} - u_{\calE}, v_{\calF} - \Pi_{\calF}^{\calE} v_{\calF} + \Pi_{\calF}^{\calE} v_{\calF} - v_{\calE})}.
+\end{equation}
+\noindent For $\varepsilon > 0$, we assume that $\norm{u_{\calF} - \Pi_{\calF}^{\calE} u_{\calF}}_{\hat{b}} \leq \varepsilon$, and $\norm{v_{\calF} - \Pi_{\calF}^{\calE} v_{\calF}}_{\hat{b}} \leq \varepsilon$. In addition, we assume the quasi-orthogonality property of the basis functions such that we approximate $u_{\calE}$ to its projection $\Pi_{\calF}^{\calE} u_{\calF}$; similarly for $v_{\calE}$. Then, for $\tilde{\varepsilon} \leq \mu \, \varepsilon$ with $\mu > 0$, we also assume that $\norm{\Pi_{\calF}^{\calE} u_{\calF} - u_{\calE}}_{\hat{b}} \leq \tilde{\varepsilon}$, and $\norm{\Pi_{\calF}^{\calE} v_{\calF} - v_{\calE}}_{\hat{b}} \leq \tilde{\varepsilon}$. Besides, we consider that $\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF} = u_{\calF} - \Pi_{\calF}^{\calE} u_{\calF}$; similarly for $v_{\calE}$.
+
+Therefore,
+\begin{equation}
+  \abs{l(u_{\calF}) - l(u_{\calE})} \leq b(\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}, \Pi_{\calF}^{R_{\textrm{m}}} v_{\calF}) + \calO(\varepsilon) + \calO(\tilde{\varepsilon}).
+\end{equation}
+
+\noindent As long as $b$ does not define an inner product, we assume a construction similar to \cref{eq:alternativeb}.
+
+We then define error indicators associated with the elements.
+
+\subsubsection{Computation of the error indicators}
+To define the element-wise contribution, we consider that, for a given element $K \in \calT$, $R_{\textrm{m}}(K)$ is the set of the \emph{removable} basis functions of $\calF$ whose support contains $K$. Then, $\calE(K) = \calF \, \setminus \, R_{\textrm{m}}(K)$.
+
+\begin{defn}[Element-wise error] We define the element-wise error indicators of $K \in \calT$ as follows:
+  \begin{equation}
+    \label{eq:indicator}
+    \eta_{K} \coloneqq \norm{\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}}_{\hat{b}} \norm{\Pi_{\calF}^{R_{\textrm{m}}} v_{\calF}}_{\hat{b}}.
+  \end{equation}
+\end{defn}
+
+\pagebreak
+
+%By defining $\Pi^{R_{\textrm{m}}(K)} \tilde{u}$ as the restriction of $\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}$ to the element $K \in \calT$, a good approximation of the energy of the error is given by $E(\Pi^{R_{\textrm{m}}(K)} \tilde{u})$.
+%\noindent From equation \cref{eq:energy}, and following Darrigrand's work \cite{darrigrand2020painless}, we define the element-wise contribution in energy to the solution of a given $\Pi^{R_{\textrm{m}}(K)} \tilde{u} \in \H_{\calF}$ as follows:
+%
+%\begin{align}
+%	E\big(\Pi^{R_{\textrm{m}}(K)} \tilde{u} \big) = \frac{1}{2} b(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{u}).
+%\end{align}
+%
+%\noindent Therefore, we define $\tilde{b}$ as follows:
+%\begin{align}
+%	\tilde{b}\big(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{u} \big) = \frac{1}{2} b(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{u}).
+%\end{align}
+
+%This way, we obtain
+%\begin{align}
+%	\label{eq:upperbound}
+%	\abs{l(u_{\calF}) - l(\Pi_{\calF}^{\calE} u_{\calF})} \leq \sum_{K} \abs{b(u_{\calF} - \Pi_{\calF}^{\calE} u_{\calF}, v_{\calF} - \Pi_{\calF}^{\calE} v_{\calF})} \leq \sum_{K} \abs{\hat{b}(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{v})}.
+%\end{align}
+%\noindent This way, we define the contribution in energy to the solutions $\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{v} \in \H_{\calF}$ as follows:
+%	\begin{equation}
+%		\tilde{b} \big(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{v} \big) = \hat{b}(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{v}).
+%	\end{equation}
+%
+%Thus, the upper bound of the error representation expressed in terms of absolute value contributions is given by
+%\begin{equation}
+%	\abs{l(\Pi^{R_{\textrm{m}}(K)} \tilde{u})} \leq \sum_{K} \abs{\tilde{b}(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{v})}.
+%\end{equation}
+%Note that $\hat{b}=b$ holds for elliptic problems.
+%
+%\noindent This way, we define the contribution in energy to the solution $\Pi^{R_{\textrm{m}}(K)} \tilde{u} \in \H_{\calF}$ as follows:
+%	\begin{equation}
+%		E \big(\Pi^{R_{\textrm{m}}(K)} \tilde{u} \big) = \hat{b}(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{u}).
+%	\end{equation}
+%
+%\noindent Therefore, for non-elliptic problems we define $\tilde{b}$ as follows:
+%\begin{align}
+%	\tilde{b}\big(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{u} \big) =  \hat{b}(\Pi^{R_{\textrm{m}}(K)} \tilde{u}, \Pi^{R_{\textrm{m}}(K)} \tilde{u}).
+%\end{align}
+%
+%To do so, we assume the quasi-orthogonality property of the basis functions, such that we approximate $u_{\calE}$ to its projection.
+%In our strategy, the choice of a function, which we will denote by $\tilde{b}$, to compute our element-wise error indicators is one of the main ingredients. This $\tilde{b}$ is a problem-dependent function, which will help us to compute our element-wise error indicators.
+%$\Gamma_{D}$ is the homogenous part of $\Omega$ and $\Gamma_{N}$ the Neuman part of $\Omega$; maybe empty. Besides, $\Gamma_{D}\cap \Gamma_{N}=\emptyset$.
+%
+%	\begin{align}
+%		\tilde{b}\big(\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}, \Pi_{\calF}^{R_{\textrm{m}}} u_{\calF} \big) &= E(u_{\calF} - \Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}) - E(u_{\calF}), \ \\
+%		 & = \frac{1}{2} b(\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}, \Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}) - b(u_{\calF}, \Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}) + f(\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}), \ \\
+%		 & = \frac{1}{2} b(\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}, \Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}).
+%	\end{align}
+
+%\begin{equation}
+%	\label{eq:finesoludir}
+%	u_{\calF} \coloneqq \sum_{\phi_{i} \in \calE} u_{i} \phi_{i} + \sum_{\phi_{i} \notin \calE} u_{i} \phi_{i}.
+%\end{equation}
+
+%The objective of the $hp$-unrefinement step is to build a solution that only employs a small portion of basis functions. Thus, given a mesh and its solution, we aim to build a minimal subset, such that the absolute value of the difference between each solution's norm (measured in a suitable norm) is of a prescribed accuracy.
+
+%\begin{equation}
+%	\label{eq:argmin1}
+%	\abs{\H_{\calE^{*}}} \coloneqq \argmin_{\H_{\calE}; \, \abs{u_\calF-u_\calE} \, < \, \varepsilon} \abs{\H_{\calE}}.
+%\end{equation}
+
+%	\begin{algorithm}
+%		\SetAlgoLined
+%		\KwIn{$\calT$ a given mesh; two threshold parameters $\alpha_{p}$, $\alpha_{h}$ $\in$ $(0, 1]$.}
+%		\KwOut{$\calT$ adapted mesh.}
+%
+%		\Do{ }{
+%			Solve the problem on $\calT$\;
+%			Computation of the elementwise indicators $\eta_{K}$ $\forall K \in \calT^{R_{\textrm{m}}}$ and $\textrm{Avg}(\calT)$\;
+%			\If{$\abs{\eta_{K, i}} \leq \alpha_{p} \abs{\textrm{Avg}(\calT)}$}{
+%				$p$-Mark: mark $K$ for $p$-unrefinement in the direction $i$, $\forall i \in \{1, \dots, d\}$\;
+%			}
+%			\If{$\abs{\textrm{Avg}^{\calS(K)}(\calT)} \leq \alpha_{h} \abs{\textrm{Avg}(\calT)}$}{
+%				$h$-Mark: mark the siblinghood of $K$ for $h$-unrefinement\;
+%			}
+%			\If{$p$-Mark and $h$-Mark}{
+%				$h$-unrefinement\;
+%			}
+%			Unless something has been marked, return $\calT$ as unrefined mesh\;
+%			Update $\calT$\;
+%		}
+%		\caption{Firing policy}
+%	\end{algorithm}
+
+%\todo{Rm(K) in subsection 2.3}
+%	For a given node $e$ (understanding a node as described in \cite{demkowicz2007computing}), we define the nodal restriction as follows:
+%	\begin{equation}
+%		\Pi_{\calF}^{R_{\textrm{m}}(e)} u_{\calF} \coloneqq \sum_{\phi_{j} \in R_{\textrm{m}}(e)} u_{j} \phi_{j},
+%	\end{equation}
+%	\noindent where $R_{\textrm{m}}(e) \neq \emptyset$ is the set of removable basis functions of the node $e$. Then, for a given node $e$ such that $d_{e} \neq 0$ and $i \in \calD_{e}$, we define
+%	\begin{equation}
+%		\Pi_{\calF}^{R_{\textrm{m}}(e,i)} u_{\calF} \coloneqq \sum_{\phi_{j} \in R_{\textrm{m}}(e,i)} u_{j} \phi_{j},
+%	\end{equation}
+%	\noindent where $R_{\textrm{m}}(e,i) \neq \emptyset$ is the set of removable basis functions in the direction $i$.
+
+%\Pi_{\calF}^{\calE} u_{\calF}
+%\Pi_{\calF}^{\calE} v_{\calF}
+%\Pi_{\calF}^{R_{\textrm{m}}} u_{\calF}
+%\Pi_{\calF}^{R_{\textrm{m}}} v_{\calF}
+
+%\begin{align}
+%	\abs{l(u_{\calF} - u_{\calE})} &= \abs{b(u_{\calF} - u_{\calE},v_{\calF})},  \\
+%	&=\abs{ b(u_{\calF} - u_{\calE},v_{\calF}- v_{\calE})}, \\
+%	&\leq \sum_{K} \abs{b_K(u_{\calF} - u_{\calE},v_{\calF}- v_{\calE})}, \\
+%	&\leq \sum_{K} \abs{\hat{b}_K(u_{\calF} - u_{\calE},v_{\calF}- v_{\calE})}, \\
+%	&\approx \sum_{K} \abs{\hat{b}_K(u_{\calF} - \Pi_{\calF}^{\calE} u_{\calF},v_{\calF}- \Pi_{\calF}^{\calE} v_{\calF})}, \\
+%	&=\sum_{K} \abs{\hat{b}_K(\Pi_{\calF}^{R} u_{\calF},\Pi_{\calF}^{R} v_{\calF})}.	\label{eq:upperbound}
+%\end{align}
+
+%\begin{defn}[Average quantity]
+%	The average contribution per removable basis function over all the elements is computed as:
+%	\begin{equation}
+%		\label{eq:avg1}
+%		\textrm{Avg} = \frac{1}{|\calT^{R_{\textrm{m}}}|}\sum_{K \in \calT^{R_{\textrm{m}}}}\eta_{K},
+%	\end{equation}
+%	where $\calT^{R_{\textrm{m}}}$ denotes the set of elements that contains removable basis functions and $|\calT^{R_{\textrm{m}}}|$ stands for its cardinality. For all $K \in \calT^{R_{\textrm{m}}}$ such that $K$ is not a root element and $\calS(K) \subset \calT^{R_{\textrm{m}}}$ (its siblinghood), the local average contribution over the leaves of a tree is denoted as follows
+%	\begin{equation}
+%		\label{eq:avglocal1}
+%		\textrm{Avg}^{\calS(K)} = \frac{1}{|\calS(K)|}\sum_{K \in \calS(K)}\eta_{K}.
+%	\end{equation}
+%\end{defn}
+%
+%
+%\subsection{Alternative dual problem}
+%Let $\tilde{b}$ an arbitrary symmetric continuous and positive definite bilinear form. Following Darrigrand et. al. \cite{darrigrand2018goal}, we introduce an alternative dual problem as follows:
+%\begin{var_for}
+%	Find $\tilde{v}\in \H$ such that
+%	\begin{equation}
+%		\label{eq:altdual}
+%		\tilde{b}(\phi,\tilde{v})=l(\phi), \quad \forall \phi\in \H,
+%	\end{equation}
+%\end{var_for}
+%\noindent and its discrete equivalent
+%\begin{var_for}
+%	Find $\tilde{v}_{F}\in \H_{F}$ such that
+%	\begin{equation}
+%		\label{eq:altdualH}
+%		\tilde{b}(\phi,\tilde{v}_{F})=l(\phi), \quad \forall \phi\in \H_{F}.
+%	\end{equation}
+%\end{var_for}
+%
+%\subsubsection{Error representations and upper bounds}
+%An alternative upper bound can be obtained from  \cref{eq:altdualH}:
+%\begin{align}
+%	\abs{l(u_{F} - u_{E})} &= \abs{ \tilde{b}(u_{F} - u_{E}, \tilde{v_{F}})},  \\
+%	&\leq \sum_{K} \abs{\tilde{b}(u_{F} - u_{E}, \tilde{v_{F}}}, \\
+%	&\approx \sum_{K} \abs{\tilde{b}(u_{F} - \Pi_{F}^{E} u_{F} , \tilde{v_{F}})}, \\
+%	&=\sum_{K} \abs{\tilde{b}(\Pi_{F}^{R} u_{F}, \tilde{v_{F}})},
+%	\label{eq:upperboundalt}
+%\end{align}
+%
+%\subsection{New alternative dual problem}
+%The starting point to define our error indicator correctly is the following:
+%\begin{var_for}
+%	Find $\tilde{\varepsilon}$ such that
+%	\begin{equation}
+%		\label{eq:alternativeind}
+%		\tilde{b}(\phi, \tilde{\varepsilon})=l(\phi) - b(\phi, \Pi_{F}^{E} v_{F}), \quad \forall \phi\in \H_{F}.
+%	\end{equation}
+%\end{var_for}
+%We recall the following:
+%\begin{align}
+%	\tilde{b}(\phi, \tilde{\varepsilon})&=l(\phi) - b(\phi, \Pi_{F}^{E} v_{F}),  \\
+%	&= l(\phi) - b(\phi, v_{F} - \Pi_{F}^{R} v_{F}), \\
+%	&= l(\phi) - b(\phi, v_{F}) + b(\phi, \Pi_{F}^{R} v_{F}), \\
+%	&= l(\phi) - l(\phi) + b(\phi, \Pi_{F}^{R} v_{F}), \\
+%	&= b(\phi, \Pi_{F}^{R} v_{F}). \label{eq:altjust}
+%\end{align}
+%\subsubsection{Error representations and upper bounds}
+%By using \cref{eq:alternativeind}, and assuming quasi-ortogonal basis functions, we obtain
+%\begin{align}
+%	\abs{l(\Pi_{F}^{R} u_{F}) - b(\Pi_{F}^{R} u_{F}, \Pi_{F}^{E} v_{F})} &= \abs{\tilde{b}(\Pi_{F}^{R} u_{F}, \tilde{\varepsilon})},  \\
+%	\abs{l(\Pi_{F}^{R} u_{F})} &\leq \sum_{K} \abs{\tilde{b}(\Pi_{F}^{R} u_{F}, \tilde{\varepsilon})}. \label{eq:altupperbound}
+%\end{align}
+
+%\newpage
+%
+%\subsubsection{The new error indicator}
+%\SetKwRepeat{Do}{do}{end}%
+%
+%\begin{algorithm}
+%	\SetAlgoLined
+%	\Do{ }{
+%		Allocate memory for unrefinement data \;
+%		Assign dofs all removables \;
+%		Solve $\tilde{b}(\phi, \tilde{\varepsilon}) = b(\phi, \Pi_{F}^{R} \, v_{F})$ \;
+%		Evaluate the element indicator $\eta_{K}(\Pi_{F}^{R} \, u_{F}, \tilde{\varepsilon})$ \;
+%	}
+%	\caption{Compute elemental error indicator}
+%\end{algorithm}
+%FROM HERE ON, WE WILL NEED TO CHANGE THINGS. FIRST, GIVE A SHORT EXPLANATION MENTIONING THAT THE $HP$-UNREFINEMENT ALGORITHM CONTAINS IS AN ITERATIVE ALGORITHM, ETC. THEN, INTRODUCE THE NOTATION YOU HAVE IN THE NEXT PARAGRAPH -- PERHAPS YOU NEED TO CHANGE SOMETHING, I AM NOT SURE. THEN, DEFINE THE ERROR INDICATORS WITH THE NOTATION WE ARE USING (IN PARTICULAR, INTRODUCE THE SYMBOL $u_F$).
+%YOUR CURRENT SECTION 4 IS NOW GONE!
+
+%\subsubsection{$\eps_0$ and $\eps_1$}
+%Let $u_F$ be the solution in $\H_{F}$ and let $u_C$ be the solution in $\H_C$ such that $\H_{C} \subset \H_{F}$, then exists $\eps_0  > 0$ so that
+%\begin{align}
+%	\abs{l(u_{F} - u_{C})} &= \abs{l(u_{F} - u_{C} + u_{E} - u_{E})}  \ \\
+%													&\leq \abs{l(u_{F} - u_{E})} + \abs{l(u_{E} - u_{C})} \ \\
+%													&\leq \eps_0.
+%\end{align}
+%Thus,
+%\begin{align}
+%	\abs{l(u_{F} - u_{E})} &\leq \eps_0 - \abs{l(u_{E} - u_{C})} \ \\
+%													&= \eps_1.
+%\end{align}
+
+%On the other hand, since $\H_R \subseteq \H_{R_{\textrm{m}}}$ then
+%\begin{equation}
+%	\abs{\hat{b}_{K}(\Pi_{F}^{R} u_{F},\Pi_{F}^{R} v_{F})} \leq \frac{1}{R_{\textrm{m}}(K)} \abs{\hat{b}_{K}(\Pi_{F}^{R_{\textrm{m}}(K)} u_{F},\Pi_{F}^{R_{\textrm{m}}(K)} v_{F})} = \delta.
+%\end{equation}
+%\subsection{Algorithm}
+%Our algorithm consists mainly in a two-steps procedure: 1) arbitrary refinements that increases the number of \acp{dof} and 2) $hp$-unrefinements that decrease it. Algorithm $1$ describes the adaptive process and Algorithm $2$ describes the $hp$ firing policy. Let us describe the adaptive process. Given $\calT$ an initial coarse mesh, we perfom arbitrary refinements on it, then we execute Algorithm $1$. This way, we obtain a final adapted mesh consisting of essential basis functions. On the other hand, the $hp$ firing policy has to decide whether unrefining a given element in polynomial order $p$ or in element size $h$.
+%
+%\SetKwRepeat{Do}{do}{end}%
+%
+%\begin{algorithm}
+%	\SetAlgoLined
+%	\KwIn{$\calT$ initial coarse mesh.}
+%	\KwOut{$\calT$ adapted mesh.}
+%
+%	\Do{ }{
+%		Perfom arbitrary refinements on $\calT$ ($h$, $p$, or both)\;
+%		Execute the coarsening step (Algorithm 2) to update $\calT$\;
+%		\If{The unrefined mesh $\calT$ satisfies a given precision}{
+%			return $\calT$ as the final adapted mesh\;
+%		}
+%	}
+%	\caption{Adaptative process}
+%\end{algorithm}
+%We perform a global $h$-refinement and, for the next iteration, a global $p=p+2$ refinement.
+%\begin{algorithm}
+%	\SetAlgoLined
+%	\KwIn{$\calT$ a given mesh; $\alpha_{p}$, $\alpha_{h}$ $\geq$ $0$.}
+%	\KwOut{$\calT$ coarsened mesh.}
+%
+%	\Do{ }{
+%		Solve the problem on $\calT$\;
+%		Compute the indicators $\eta_{K}$ $\forall K \in \calT^{R_{\textrm{m}}}$ and $\textrm{Avg}$\;
+%		$p$-Mark: $\forall K \in \calT^{R_{\textrm{m}}}$ and $\forall i \in \{1, \dots, d\}$\;
+%		\If{$\abs{\eta_{K, i}} \leq \alpha_{p} \abs{\textrm{Avg}}$}{
+%			mark $K$ for $p$-unrefinement in the direction $i$\;
+%		}
+%		$h$-Mark: $\forall K \in \calT^{R_{\textrm{m}}}$ such that $\calS(K) \subset \calT^{R_{\textrm{m}}}$\;
+%		\If{$\abs{\textrm{Avg}^{\calS(K)}} \leq \alpha_{h} \abs{\textrm{Avg}}$}{
+%			mark $\calS(K)$, the siblinghood of $K$, for $h$-unrefinement\;
+%		}
+%		\If{$p$-Mark and $h$-Mark}{
+%			$h$-unrefinement\;
+%		}
+%		Escape, if nothing has been marked, return $\calT$ as unrefined mesh\;
+%		Update $\calT$\;
+%	}
+%	\caption{Firing policy}
+%\end{algorithm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%: explicar el algoritmo de firing policy
+%%Entramos con un mallado dado y su solución
+%%Identificamos las funciones que podemos tocar ("las removable")
+%%Elegimos las que vamos a quitar ("las removed")
+%%Este proceso se repite hasta que removed = 0
+%%En cada iteración del unrefining_loop se resuleve el problema
+%%Calculamos la solución para poder calcular los estimadores. Entonces lo hacemos con el mallado que queremos desrefinar.
+%%El mallado final (coarsen mesh) es el mallado fino menos las removed.
+%We set the parameters of the unrefinement process to $\alpha_p = 0.1$ and $\alpha_h = 0.3$.
+%
+%In the following subsections, we are going to develop the mathematical formulation related to those algorithms.
+%\subsection{Goal-oriented formulation}
+%The main objective in the goal-oriented approach is to guide the refinements to obtain admissible error estimators for a specific \ac{QoI} of engineering interest. Let us consider an open bounded domain $\Omega\subset \R^{d}$, and $\H \coloneqq \H(\Omega)$ a Hilbert space on $\Omega$ (simply denoted $\H$ in the following). We denote the boundary of $\Omega$ as $\partial \Omega \coloneqq \Gamma_{D}\cup \Gamma_{N}$ where $\Gamma_{D}\cap \Gamma_{N}=\emptyset$. Thus, for a given bilinear continuous form $b$ defined on $\H \times \H$ and $f $ a linear and continuous functional on $\H$, we describe the problem to be solved with the following variational formulation:
+%\begin{var_for}
+%	Find $u\in \H$ such that
+%	\begin{equation}
+%		\label{eq:direct}
+%		b(u,\phi)=f(\phi), \quad \forall \phi\in \H.
+%	\end{equation}
+%\end{var_for}
+%\noindent Let $F = \{ \phi_{i} \}_{i=1}^{n_{F}}$ be a set of basis functions associated with a fine grid such that $\H_{F} = \textrm{span}(F)$. We consider the discrete formulation in $\H_{F}\subset \H$.
+%\begin{var_for}
+%	Find $u_{F} \in \H_{F}$ such that
+%	\begin{equation}
+%		\label{eq:directH}
+%		b(u_{F},\phi)=f(\phi), \quad \forall \phi\in \H_{F},
+%	\end{equation}
+%\end{var_for}
+%\noindent where $u_{F}$ is the finite element solution in $\H_{F}$. We introduce a subset of basis functions $S \subset F$ and decompose $u_{F}$ as:
+%\begin{equation}
+%	\label{eq:finesoludir}
+%	u_{F} \coloneqq \sum_{\phi_{i} \in S} u_{i} \phi_{i} + \sum_{\phi_{i} \notin S} u_{i} \phi_{i}.
+%\end{equation}
+%\noindent We define a projection operator as follows.
+%\begin{defn}[Projection]
+%	Let $\Pi_{F}^{S}$: $\H _{F} \longrightarrow \H_{F}$ be a suitable projection such that
+%	\begin{equation}
+%		\Pi_{F}^{S} u_{F} = \sum_{\phi_{i} \in S} u_{i} \phi_{i} \neq u_{S}.
+%	\end{equation}
+%\end{defn}
+%
+%Following the approach developed by Prudhomme and Oden~\cite{prudhomme1999goal,oden2001goal}, we introduce a dual problem as follows.
+%\begin{var_for}
+%	Find $v\in \H$ such that
+%	\begin{equation}
+%		\label{eq:adjoint}
+%		b(\phi,v)=l(\phi), \quad \forall \phi\in \H,
+%	\end{equation}
+%\end{var_for}
+%\noindent and its discrete equivalent
+%\begin{var_for}
+%	Find $v_{F}\in \H_{F}$ such that
+%	\begin{equation}
+%		\label{eq:adjointH}
+%		b(\phi,v_{F})=l(\phi), \quad \forall \phi\in \H_{F},
+%	\end{equation}
+%\end{var_for}
+%\noindent  where $l(\cdot)$ is a linear and continuous functional that defines the \ac{QoI} for each specific problem, and $v_{F}$ stands for the finite element solution of the dual problem associated with the fine grid.
+%
+%%Quantitites of interest are often represented by bounded linear functionals of the solution. We provide an particular \ac{QoI} for %each problem.
+%%We define our \ac{QoI} as the average of the solution $u$ over a subdomain $\Omega_{s}$ given by
+%%\begin{equation}
+%%	\label{eq:linear_funct}
+%%	l(u)=\frac{1}{|\Omega_{s}|}\int_{\Omega_{s}}{g(x,y) \, u(x,y) \,} \, d\Omega_{s},
+%%\end{equation}
+%%where $g \in L_{2}(\Omega)$, $\Omega_{s}\subset \Omega$ the region where the \ac{QoI} is accurately computed, and $|\Omega_{s}|$ corresponds to the area or volume of $\Omega_{s}$.
+%
+%\subsection{Goal-oriented strategy}
+%Following the idea of removable basis functions introduced in \cref{subsec:Removable}, we define $R^{j}_{\textrm{m}} \subset F$ as the subset of removable basis functions before iteration $j = 1, \dots, n_{\textrm{unref}}$ and $R^{j}_{d} \subset F$ as the subset of removed basis functions after iteration $j = 1, \dots, n_{\textrm{unref}}$. Let us simply denote $R_{\textrm{m}} = R^{j}_{\textrm{m}}$  as the \emph{removable} basis functions, $R = R_{d}^{n_{\textrm{unref}}}$ as the \emph{removed} basis functions, and $E = F/R_{d}^{n_{\textrm{unref}}}$ as the \emph{essential} basis functions. We recall $\textrm{span}(E) = \H_{E} \subset \H_{F}$ and $\textrm{span}(R) = \H_{R} \subset \H_{F}$ such that $\H_{F} = \H_{E} \cup \H_{R}$ and $ \H_{E}\cap \H_{R} = \emptyset$.
+%
+%We express $u_{F}$ as follows
+%\begin{equation}
+%	u_{F} \coloneqq  \underbrace{\sum_{\phi_{j} \in E} u_{j} \phi_{j}}_{\Pi_{F}^{E} u_{F}} + \underbrace{\sum_{\phi_{j} \in R} u_{ j} \phi_{j}}_{\Pi_{F}^{R} u_{F}}.
+%\end{equation}
+%
+%The main objective is to obtain a finite element discretization that only employs a small portion of the basis functions while providing an equivalent QoI (up to a tolerance). Thus, given $\varepsilon > 0$ we look for a particular $\H_{E^{*}}$ that has minimum cardinality
+%\begin{equation}
+%	\label{eq:argmin1}
+%	\begin{aligned}
+%		\abs{\H_{E^{*}}} \coloneqq \argmin_{\H_{E}} \abs{\H_{E}} \ \\
+%		\abs{l(u_{F} - u_{E})} < \varepsilon.
+%	\end{aligned}
+%\end{equation}
+%
+%\noindent We cannot expect that $\abs{l(u_{F})}$ exhibits any desirable convergence property with respect to $\H_{F}$. Hence, the idea is to build an error representation with desirable convergence properties.
+%
+%\subsubsection{Error representation}
+%We introduce a symmetric and positive definite (SPD) bilinear form $\hat{b}$ that is an upper bound of the original bilinear form $b$. For example, if $b$ is already SPD, then $\hat{b} = b$. If $b$ is associated with Helmholtz equation, then we can derive $\hat{b}$ as follows.
+%\begin{align}
+%	\abs{b(u,v)} &= \abs{ \, \int_{\Omega} \big(\grad u \cdot \grad v - k^2 u v\big) \, d\Omega \, }  \\
+%	&= \abs{ \, \int_{\Omega} \grad u \cdot \grad v \, d\Omega - \int_{\Omega} k^2 u v \, d\Omega \, } \\
+%	& \leq \abs{ \, \int_{\Omega} \grad u \cdot \grad v \, d\Omega \,} + \abs{ \, \int_{\Omega} k^2 u v \, d\Omega \, } \\
+%	&= \abs{\hat{b}(u,v)} \label{eq:upperB}
+%\end{align}
+%From the dual problem \cref{eq:adjointH}, we obtain
+%\begin{align}
+%	\abs{l(u_{F} - u_{E})} &= \abs{b(u_{F} - u_{E},v_{F})}  \\
+%	&=\abs{ b(u_{F} - u_{E},v_{F}- v_{E})} \\
+%	&\leq \sum_{K} \abs{b_{K}(u_{F} - u_{E},v_{F}- v_{E})} \\
+%	&\leq \sum_{K} \abs{\hat{b}_{K}(u_{F} - u_{E},v_{F}- v_{E}} \\
+%	&\approx \sum_{K} \abs{\hat{b}_{K}(u_{F} - \Pi_{F}^{E} u_{F},v_{F}- \Pi_{F}^{E} v_{F})} \\
+%	&=\sum_{K} \abs{\hat{b}_{K}(\Pi_{F}^{R} u_{F},\Pi_{F}^{R} v_{F})}, 	\label{eq:upperbound}
+%\end{align}
+%\noindent where $b_{K}$  and $\hat{b}_{K}$ stand for the restriction of $b$ and  $\hat{b}$ to an element $K$. If $b$ is symmetric, then we obtain the following
+%\begin{equation}
+%	b(u_{F} - u_{E},v_{E}) = b(u_{F},v_{E}) - b(u_{E},v_{E})  = l(v_{E}) - l(v_{E}) = 0.
+%\end{equation}
+%Thus, given $\delta > 0$ our new problem is to look for a particular $\H_{E^{*}}$ such that
+%\begin{equation}
+%	\label{eq:argmin2}
+%	\begin{aligned}
+%		\abs{\H_{E^{*}}} \coloneqq \argmin_{\H_{E}} \abs{\H_{E}} \ \\
+%		\displaystyle{\sum_{K} \abs{\hat{b}_{K}(\Pi_{F}^{R} u_{F},\Pi_{F}^{R} v_{F})}} < \delta.
+%	\end{aligned}
+%\end{equation}
+%
+%\subsubsection{Alternative dual problem}
+%Let $\tilde{b}$ an arbitrary  symmetric continuous bilinear form. We introduce an alternative dual problem as follows.
+%\begin{var_for}
+%	Find $\tilde{v}\in \H$ such that
+%	\begin{equation}
+%		\label{eq:altdual}
+%		\tilde{b}(\phi,\tilde{v})=l(\phi), \quad \forall \phi\in \H,
+%	\end{equation}
+%\end{var_for}
+%\noindent and its discrete equivalent
+%\begin{var_for}
+%	Find $\tilde{v}_{F}\in \H_{F}$ such that
+%	\begin{equation}
+%		\label{eq:altdualH}
+%		\tilde{b}(\phi,\tilde{v}_{F})=l(\phi), \quad \forall \phi\in \H_{F}.
+%	\end{equation}
+%\end{var_for}
+%From the discrete alternative dual problem  given by \cref{eq:altdualH}, we obtain
+%\begin{align}
+%	\abs{l(u_{F} - u_{E})} &= \abs{ \tilde{b}(u_{F} - u_{E},v_{F})}  \\
+%	&\leq \sum_{K} \abs{\tilde{b}_{K}(u_{F} - u_{E},v_{F}} \\
+%	&\approx \sum_{K} \abs{\tilde{b}_{K}(u_{F} - \Pi_{F}^{E} u_{F} ,v_{F})} \\
+%	&=\sum_{K \in \calT} \abs{\tilde{b}_{K}(\Pi_{F}^{R} u_{F},v_{F})}, 	\label{eq:upperboundalt}
+%\end{align}
+
+
+
+
+%\begin{align}
+%\abs{l(\tilde{u})}& =\abs{ b(\tilde{u},v)}\\
+%&=\abs{\sum_{K \in \calT}b_{K}(\tilde{u},v)}\\
+%&=\abs{\sum_{K \in \calT}b_{K}(\tilde{u},v^{*}+\tilde{v})}\\
+%&=\abs{\sum_{K \in \calT}b_{K}(\tilde{u},v^{*}) + \sum_{K \in \calT}b_{K}(\tilde{u},\tilde{v})}\\
+%&\underset{\perp}{\approx} \abs{\sum_{K \in \calT}b_{K}(\tilde{u},\tilde{v})}\\
+%&\leq \sum_{K \in \calT} \abs{b_{K}(\tilde{u},\tilde{v})},
+%\end{align}
+%
+%\begin{remark}
+%	It may happen that $ | l(u_{\calT}) - l(u_{\calT^{*}}) |$ is large while $| l(u_{\calT}) - l(u^{*}_{\calT}) |$ is small. In that case, our algorithm would maintain the corresponding basis functions, making the algorithm non-optimal. Nonetheless, later iterations correct these scenarios.
+%\end{remark}
+%
+%The adjoint problem provides information on how much the solution at each point in space influences the \ac{QoI}.
+%
+%To evaluate $l(u)$ and the accuracy of $l(u_{h})$, we define the error $\varepsilon$ as follows:
+%\begin{equation}
+%	\varepsilon = l(u) - l(u_{h}) =  l(u - u_{h}) = l(e),
+%\end{equation}
+%\noindent where $l(\cdot)$ represents a physical quantity.
+%
+%\subsection{Alternative formulation}
+%We introduce an \emph{pseudo dual} formulation as suggested in~\cite{darrigrand2015goal,darrigrand2017goal,darrigrand2018goal,munoz2017time}
+%\begin{var_for}
+%	Find $w\in \H$ and $w_{h}\in \H_{h}\subset \H$ such that
+%	\begin{equation}
+%		\hat{b}(\phi,w)=l(\phi), \quad \forall \phi\in \H_{h}\subset \H,
+%	\end{equation}
+%\end{var_for}
+%\noindent where $\hat{b}$ is a symmetric positive definite bilinear form (ie. a scalar product).
+%\begin{remark}
+%	$w$ is the Riesz representation of the linear \ac{QoI} $l$ via the scalar product $\hat{b}$.
+%\end{remark}
+%\subsubsection{Disclaimer}
+%For NonSPD problems, we propose the following
+%	\begin{align}
+%			\abs{l(u_{\calT} - u_{\calT}^{E})} &= \abs{ b(u_{\calT} - u_{\calT}^{E},v_{\calT})}  \\
+%			&\leq  \sum_{K \in \calT} \abs{b_{K}(u_{\calT} - u_{\calT}^{E},v_{\calT}^{E} + v_{\calT}^{R}} \\
+%			&= \sum_{K \in \calT} \abs{b_{K}(u_{\calT}^{R},v_{\calT}^{E}) + b_{K}(u_{\calT}^{R},v_{\calT}^{R})} \\
+%			& \approx \sum_{K \in \calT} \abs{b_{K}(u_{\calT}^{R},v_{\calT}^{R})} .
+%	\end{align}
+
+%\noindent We want to:
+%\begin{equation}
+%	l(u_{F} - u_{F/R_{d}^{n_{\textrm{unref}}}})  <<< l(u_{F} - u_{F/R^j}).
+%\end{equation}
+%We assume:
+%\begin{equation}
+%	l(u_{F} - u_{F/R^j}) \leq l(u - u_{F/R^j}).
+%\end{equation}
+%Thus, if we do what we want:
+%\begin{equation}
+%	l(u_{F} - u_{F/R_{d}^{n_{\textrm{unref}}}}) <<< l(u - u_{F/R^j}).
+%\end{equation}

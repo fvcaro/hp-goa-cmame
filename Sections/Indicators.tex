@@ -1,0 +1,419 @@
+% !TEX root =  ../unref_general.tex
+\section{Adaptivity}
+\label{sec:GO-adapt}
+This section describes our adaptive strategy, and we provide the error indicators that guide the $hp$-unrefinement steps. We start by algorithmically explaining our mesh generation and coarsening policy. After that, we introduce the concept of \emph{projectors} in the context of a single finite element mesh, which allows us to simulate the presence of a second grid while only operating with one. Finally, we derive the error indicators employed in the coarsening steps for energy-norm and goal-oriented strategies and elliptic and non-elliptic problems.
+
+\subsection{Unrefinement policy}
+
+
+Adaptive FEMs aim to reduce computational costs \revb{while} providing low discretization errors. In this work, we employ the adaptive algorithm introduced in \cite{darrigrand2020painless}, which iterates along with the following two steps for a given $hp$-grid:
+\begin{enumerate}
+  \item To perform a user-defined mesh refinement (in our particular implementation, we alternate global and uniform $h$- and $p=p+2$-refinements), and then
+  \item To perform a (quasi)-optimal $hp$-coarsening step.
+\end{enumerate}
+This procedure is illustrated in Algorithm~\ref{alg:adaptive}. We emphasize that these repeated uniform global refinements guarantee the convergence of the approach, while the coarsening step ensures the almost optimal convergence rates~\cite{binev2013instance,canuto2017convergence}.
+
+\SetKwRepeat{Do}{do}{end}%
+
+\begin{algorithm}
+  \SetAlgoLined
+  \KwIn{A given initial mesh}
+  \KwOut{A final $hp$-adapted mesh}
+
+  \While{ $error$ $>$ $\textrm{tolerance}$}{
+    Perform a global and uniform ($h$ or $p$) refinement\;
+    Execute a (quasi)-optimal $hp$-coarsening step (Algorithm 2) to the mesh\;
+    Update $error$\;
+  }
+  \caption{Adaptive process}
+  \label{alg:adaptive}
+\end{algorithm}
+
+Similarly to \cite{darrigrand2020painless}, the main ingredients of our $hp$-coarsening step (see  Algorithm 2) are:
+\begin{enumerate}
+  \item To compute the solution on the current mesh.
+  \item For each element of the mesh:
+        \begin{enumerate}
+          \item To find the removable basis functions whose support contains the element.
+          \item To calculate the contribution of the removable basis functions to the solution.\label{enum:contribution}
+        \end{enumerate}
+  \item \revb{Remove the basis functions with small contributions}.
+\end{enumerate}
+The above process is repeated until \revb{no basis function is eliminated}. \Cref{fig:unrefinement} illustrates the $h$-unrefinement policy. A given coarse mesh in \Cref{fig:initialmesh} is $h$-refined globally in \Cref{fig:refinedmesh}. Then, after an unrefinement process, we obtain the adapted mesh displayed in \Cref{fig:adaptedmesh}.
+
+
+\begin{figure}
+  \centering
+  \begin{subfigure}[b]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[x=0.5cm,y=0.5cm]
+
+      \node(origin) at (0,0) {};
+      \node(end) at (10,10) {};
+      \node(int_origin) at (2.5,2.5) {};
+      \node(int_end) at (7.5,7.5) {};
+
+      \draw [draw=black,fill=white] (origin) rectangle (end);
+
+      \draw[] ($(origin)+(2.5,0)$) -- ($(origin)+(2.5,10)$);
+      \draw[] ($(origin)+(5,0)$) -- ($(origin)+(5,10)$);
+      \draw[] ($(origin)+(7.5,0)$) -- ($(origin)+(7.5,10)$);
+
+      \draw[] ($(origin)+(0,2.5)$) -- ($(origin)+(10,2.5)$);
+      \draw[] ($(origin)+(0,5)$) -- ($(origin)+(10,5)$);
+      \draw[] ($(origin)+(0,7.5)$) -- ($(origin)+(10,7.5)$);
+
+      \draw [draw=black,fill=white] (int_origin) rectangle (int_end);
+
+    \end{tikzpicture}
+    \caption{A initial (given) mesh.}
+    \label{fig:initialmesh}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[x=0.5cm,y=0.5cm]
+
+      \node(origin) at (0,0) {};
+      \node(end) at (10,10) {};
+      \node(int_origin) at (2.5,2.5) {};
+      \node(int_end) at (7.5,7.5) {};
+
+      \draw [draw=black,fill=white] (origin) rectangle (end);
+
+      \draw[] ($(origin)+(0.625,0)$) -- ($(origin)+(0.625,10)$);
+      \draw[] ($(origin)+(1.25,0)$) -- ($(origin)+(1.25,10)$);
+      \draw[] ($(origin)+(1.875,0)$) -- ($(origin)+(1.875,10)$);
+      \draw[] ($(origin)+(2.5,0)$) -- ($(origin)+(2.5,10)$);
+      \draw[] ($(origin)+(3.125,0)$) -- ($(origin)+(3.125,10)$);
+      \draw[] ($(origin)+(3.75,0)$) -- ($(origin)+(3.75,10)$);
+      \draw[] ($(origin)+(4.375,0)$) -- ($(origin)+(4.375,10)$);
+      \draw[] ($(origin)+(5,0)$) -- ($(origin)+(5,10)$);
+      \draw[] ($(origin)+(5.625,0)$) -- ($(origin)+(5.625,10)$);
+      \draw[] ($(origin)+(6.25,0)$) -- ($(origin)+(6.25,10)$);
+      \draw[] ($(origin)+(6.875,0)$) -- ($(origin)+(6.875,10)$);
+      \draw[] ($(origin)+(7.5,0)$) -- ($(origin)+(7.5,10)$);
+      \draw[] ($(origin)+(8.125,0)$) -- ($(origin)+(8.125,10)$);
+      \draw[] ($(origin)+(8.75,0)$) -- ($(origin)+(8.75,10)$);
+      \draw[] ($(origin)+(9.375,0)$) -- ($(origin)+(9.375,10)$);
+      %
+      \draw[] ($(origin)+(0,0.625)$) -- ($(origin)+(10,0.625)$);
+      \draw[] ($(origin)+(0,1.25)$) -- ($(origin)+(10,1.25)$);
+      \draw[] ($(origin)+(0,1.875)$) -- ($(origin)+(10,1.875)$);
+      \draw[] ($(origin)+(0,2.5)$) -- ($(origin)+(10,2.5)$);
+      \draw[] ($(origin)+(0,3.125)$) -- ($(origin)+(10,3.125)$);
+      \draw[] ($(origin)+(0,3.75)$) -- ($(origin)+(10,3.75)$);
+      \draw[] ($(origin)+(0,4.375)$) -- ($(origin)+(10,4.375)$);
+      \draw[] ($(origin)+(0,5)$) -- ($(origin)+(10,5)$);
+      \draw[] ($(origin)+(0,5.625)$) -- ($(origin)+(10,5.625)$);
+      \draw[] ($(origin)+(0,6.25)$) -- ($(origin)+(10,6.25)$);
+      \draw[] ($(origin)+(0,6.875)$) -- ($(origin)+(10,6.875)$);
+      \draw[] ($(origin)+(0,7.5)$) -- ($(origin)+(10,7.5)$);
+      \draw[] ($(origin)+(0,8.125)$) -- ($(origin)+(10,8.125)$);
+      \draw[] ($(origin)+(0,8.75)$) -- ($(origin)+(10,8.75)$);
+      \draw[] ($(origin)+(0,9.375)$) -- ($(origin)+(10,9.375)$);
+
+      \draw [draw=black,fill=white] (int_origin) rectangle (int_end);
+
+    \end{tikzpicture}
+    \caption{An $h$-refined mesh.}
+    \label{fig:refinedmesh}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[x=0.5cm,y=0.5cm]
+
+      \node(origin) at (0,0) {};
+      \node(end) at (10,10) {};
+      \node(int_origin) at (2.5,2.5) {};
+      \node(int_end) at (7.5,7.5) {};
+
+      \draw [draw=black,fill=white] (origin) rectangle (end);
+
+      \draw[] ($(origin)+(0.625,0)$) -- ($(origin)+(0.625,10)$);
+      \draw[] ($(origin)+(1.25,0)$) -- ($(origin)+(1.25,10)$);
+      \draw[] ($(origin)+(1.875,0)$) -- ($(origin)+(1.875,10)$);
+      \draw[] ($(origin)+(2.5,0)$) -- ($(origin)+(2.5,10)$);
+      \draw[] ($(origin)+(3.125,0)$) -- ($(origin)+(3.125,10)$);
+      \draw[] ($(origin)+(3.75,0)$) -- ($(origin)+(3.75,10)$);
+      \draw[] ($(origin)+(4.375,0)$) -- ($(origin)+(4.375,10)$);
+      \draw[] ($(origin)+(5,0)$) -- ($(origin)+(5,10)$);
+      \draw[] ($(origin)+(5.625,0)$) -- ($(origin)+(5.625,10)$);
+      \draw[] ($(origin)+(6.25,0)$) -- ($(origin)+(6.25,10)$);
+      \draw[] ($(origin)+(6.875,0)$) -- ($(origin)+(6.875,10)$);
+      \draw[] ($(origin)+(7.5,0)$) -- ($(origin)+(7.5,10)$);
+      \draw[] ($(origin)+(8.125,0)$) -- ($(origin)+(8.125,10)$);
+      \draw[] ($(origin)+(8.75,0)$) -- ($(origin)+(8.75,10)$);
+      \draw[] ($(origin)+(9.375,0)$) -- ($(origin)+(9.375,10)$);
+      %
+      \draw[] ($(origin)+(0,0.625)$) -- ($(origin)+(10,0.625)$);
+      \draw[] ($(origin)+(0,1.25)$) -- ($(origin)+(10,1.25)$);
+      \draw[] ($(origin)+(0,1.875)$) -- ($(origin)+(10,1.875)$);
+      \draw[] ($(origin)+(0,2.5)$) -- ($(origin)+(10,2.5)$);
+      \draw[] ($(origin)+(0,3.125)$) -- ($(origin)+(10,3.125)$);
+      \draw[] ($(origin)+(0,3.75)$) -- ($(origin)+(10,3.75)$);
+      \draw[] ($(origin)+(0,4.375)$) -- ($(origin)+(10,4.375)$);
+      \draw[] ($(origin)+(0,5)$) -- ($(origin)+(10,5)$);
+      \draw[] ($(origin)+(0,5.625)$) -- ($(origin)+(10,5.625)$);
+      \draw[] ($(origin)+(0,6.25)$) -- ($(origin)+(10,6.25)$);
+      \draw[] ($(origin)+(0,6.875)$) -- ($(origin)+(10,6.875)$);
+      \draw[] ($(origin)+(0,7.5)$) -- ($(origin)+(10,7.5)$);
+      \draw[] ($(origin)+(0,8.125)$) -- ($(origin)+(10,8.125)$);
+      \draw[] ($(origin)+(0,8.75)$) -- ($(origin)+(10,8.75)$);
+      \draw[] ($(origin)+(0,9.375)$) -- ($(origin)+(10,9.375)$);
+
+      \draw [draw=black,fill=white] (int_origin) rectangle (int_end);
+
+      \draw [draw=black,fill=white] (0,8.75) rectangle (1.25,10);
+      \draw [draw=black,fill=white] (1.25,8.75) rectangle (2.5,10);
+      \draw [draw=black,fill=white] (0,7.5) rectangle (1.25,8.75);
+      \draw [draw=black,fill=white] (1.25,7.5) rectangle (2.5,8.75);
+      \draw [draw=black,fill=white] (int_end) rectangle (end);
+      \draw [draw=black,fill=white] (7.5,5) rectangle (8.75,6.25);
+      \draw [draw=black,fill=white] (8.75,5) rectangle (10,6.25);
+      \draw [draw=black,fill=white!15] (7.5,6.25) rectangle (8.75,7.5);
+      \draw [draw=black,fill=white] (8.75,6.25) rectangle (10,7.5);
+      \draw [draw=black,fill=white] (1.25,3.75) rectangle (2.5,5);
+      \draw [draw=black,fill=white] (6.25,1.25) rectangle (7.5,2.5);
+      \draw [draw=black,fill=white] (origin) rectangle (int_origin);
+
+    \end{tikzpicture}
+    \caption{An $h$-adapted mesh.}
+    \label{fig:adaptedmesh}
+  \end{subfigure}
+  \caption{Adaptive process illustrated.}
+  \label{fig:unrefinement}
+\end{figure}
+
+The definition of the contributions {\reva{of the removable basis functions to the solution is} problem-dependent. To provide representative quantities for energy-norm-based and GOA strategies over elliptic and non-elliptic problems, we first introduce our \emph{projectors} in the context of a single finite element grid.
+
+\begin{algorithm}
+  \SetAlgoLined
+  \KwIn{A given mesh}
+  \KwOut{An $hp$-unrefined mesh}
+
+  \Do{ }{
+    Compute the solution on the current mesh\;
+    Compute the element-wise error indicators\;
+    \revb{Unrefine the mesh by elimitating the removable basis functions with low error indicators}\;
+    \revb{When no contributions are below a given tolerance, exit}\;
+  }
+  \caption{$hp$-unrefinement policy}
+  \label{alg:unrefining}
+\end{algorithm}
+
+
+
+\subsection{Projectors}
+
+For dimension $d \in \{1,2, 3\}$, let $\Omega\subset \R^{d}$ be an open bounded domain with a Lipschitz-continuous boundary $\partial \Omega$, and let $\H(\Omega)$ be a Hilbert functional space on $\Omega$ (simply denoted as $\H$ in the following). For a given bilinear continuous form $b$ defined on $\H \times \H$, let us define our problem with the following abstract variational formulation:
+\begin{var_for}
+  Find $u \in \H$ such that
+  \begin{equation}
+    \label{eq:direct1}
+    b(u,\phi)=f(\phi), \quad \forall \phi\in \H,
+  \end{equation}
+\end{var_for}
+\noindent where $f$ is a linear form. The discrete counterpart of this abstract variational formulation reads as follows:
+%Thus, for a given finite element discretization $\calT$ of $\H$, we define $\H_{\calF} \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{\calF}}\}$ as the finite element space, where $\calF = \{ \phi_{i} \}_{i=1}^{n_{\calF}}$ is a set of basis functions $\phi_i$ and $n_{\calF} = \textrm{dim}(\H_{\calF})$. Hence, the discrete counterpart of the abstract variational formulation in $\H_{\calF} \subset \H$ reads as follows:
+\begin{var_for}
+  Find $u_{\calF} \in \H_{\calF}$ such that
+  \begin{equation}
+    \label{eq:directH1}
+    b(u_{\calF},\phi_{\calF}) = f(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF},
+  \end{equation}
+\end{var_for}
+\noindent where $\H_{\calF} \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{\calF}}\}$ is a finite element discretization $\calT$ of $\H$, such that $\H_{\calF} \subset \H$, $\calF = \{ \phi_{i} \}_{i=1}^{n_{\calF}}$ is a set of basis functions $\phi_i$, and $n_{\calF} = \textrm{dim}(\H_{\calF})$. Besides, $u_{\calF}$ corresponds to the Galerkin approximation of $u$ in $\H_{\calF}$.
+
+Some $hp$ techniques handle a fine and coarse mesh at the same time (\revbdos{see, e.g.,}~\cite{demkowicz2007computing,demkowicz2008computing}). In addition to the coding difficulties derived from this fact, they typically need to define and implement rather complex projection operators (such as the {\revb{PBI}) to link both grids. One of the main characteristics of our \enquote{painless} approach is to {\reva{operate always on a single mesh}. While it simplifies the implementation, it requires defining a projector that simulates the presence of a coarse mesh without the trouble of handling one.
+
+For a given subset of basis functions $\calS\subset \calF$ that generates the space $\H_\calS \subset \H_\calF$, we define our \emph{projection operator} $\Pi_{\calF}^{\calS}$: $\H _{\calF} \longrightarrow \H_{\calS}$ as
+\begin{equation}
+  \Pi_{\calF}^{\calS} u_{\calF} \coloneqq \sum_{\phi_{i} \in \calS} u_{i} \phi_{i},
+\end{equation}
+that is, we extract the coefficients of $u_\calF$ corresponding to the basis functions in $\calS$, and we set the others to zero.
+
+For any element $K$, we denote by $\calR_K$ the set of \emph{removable} basis functions (see~\Cref{sec:removable}) associated to $K$, by $\abs{\calR_K}$ its cardinality, and by $\H_{\calR_K}$ its associated space. Additionally, we define the subset of \emph{essential} basis functions $\calE_K$ as $\calE_K \coloneqq \calF \setminus \calR_K$, while its associated space is denoted by $\H_{\calE_K}$. These spaces satisfy that $\H_{\calE_K} \subset \H_{\calF}$, $\H_{\calR_K} \subset \H_{\calF}$, and $\H_{\calF} = \H_{\calE_K} \cup \H_{\calR_K}$, with $\H_{\calE_K}\cap \H_{\calR_K} = \emptyset$. As a consequence, we can express any $u_\calF \in \H_\calF$, as:
+\begin{equation}
+  u_{\calF} =  \Pi_{\calF}^{\calE_K} u_{\calF} + \Pi_{\calF}^{\calR_K} u_{\calF}.\label{eq:decomposition}
+\end{equation}
+
+%The solution $u_\calE$ of \cref{eq:directH1} in $\calE$ will not be computed, therefore we will use the projection of $u_\calF$ into $\calE$ to approximate it when necessary.
+
+Since we consider a single mesh at a time, the solution $u_{\calE_K}$ in $\calE_K$ associated to \cref{eq:directH1} is, in fact, never computed. Instead, we employ the projection of $u_\calF$ into $\calE_K$ to approximate it when necessary.
+
+
+\subsection{Error indicators}
+
+%For a given mesh $\calT$ and its finite dimension Galerkin space $\H_\calF$, let $u_{\calF}$ be the solution to the problem defined in \cref{eq:directH1} computed on $\H_\calF$. The objective is to define representative element-wise indicators to drive the described adaptive coarsening step (see Algorithm\ref{alg:unrefining}).
+%For that purpose, we introduce the following element-wise and directional element-wise error indicators ($\eta_K$ and $\eta_{K_i}$, espectively) for all $K\in \calT$:
+%\begin{align}
+%   & \eta_K=\frac{\nu_K}{\abs{\calR_K}},
+%   & \eta_{K_i}=\frac{\nu_{K^i}}{\abs{\calR_K^i}},\text{ for } i \in \{1,\cdots,d\},
+%\end{align}
+%\noindent where $\calR_K^i$ represents the removable basis functions associated with the element $K$ in the direction $i$, and $\nu_K$ is an element-wise indicator that depends on the adaptive strategy (energy-norm based or goal-oriented) and the type of problem that we solve (elliptic or non-elliptic).
+%
+%Since both indicators are analogous, we focus on $\eta_K$ for simplicity. Thus, we first re-derived the results from Darrigrand et al.~\cite{darrigrand2020painless} for elliptic energy-norm-based adaptive problems from another perspective. After that, we extend these results to non-elliptic equations, and finally, we consider goal-oriented adaptivity applied to elliptic and non-elliptic problems.
+
+Let $\norm{\cdot}_e$ be the \emph{energy norm} associated to the Hilbert space $\H$. For elliptic problems (given by symmetric and positive-definite bilinear forms), we define this energy from the bilinear form of the problem $b$, that is, $\norm{\cdot}_e^2 =b(\cdot, \cdot)$. For each non-elliptic problem, we shall define an alternative operator $a$ \reva{--not necessarily a bilinear form--} such that $\abs{b(\phi, \psi)} \leq \abs{a(\phi, \psi)} \, \forall \phi, \psi \in \H$ and $\norm{\cdot}_e^2 =a(\cdot, \cdot)$ is the energy norm of the problem. We stress that the choice of these \reva{operators} might highly influence the results of the adaptive process, which is usually an essential ingredient of adaptive strategies.
+
+
+%\revb{There exist isotropic and anisotropic indicators that, additionally, are problem-dependent. Thus, in the following subsections, we derive for simplicity only the isotropic error estimator $\eta_K, \forall K \in \calT$ for a wide range of problems.
+With this in mind, our objective is to provide representative element-wise error indicators that drive the $hp$-coarsening steps (see Algorithm~\ref{alg:unrefining}). For that, we consider isotropic and anisotropic indicators that are problem-dependent. In the following subsections, we derive only the isotropic error estimators $\eta_K, \forall K \in \calT$ for a wide range of problems (see ~\cite{darrigrand2020painless}. for anisotropic indicators).
+
+To select what basis functions to unrefine, we compute the error indicators' average (per degree of freedom), and we subsequently eliminate the \emph{removable} basis function whose contribution is smaller than a percentage of this average. For further details and implementation technicalities, see~\cite{darrigrand2020painless}}.
+%{\revb{\emph{Remark}: We follow the criteria given in \cite{darrigrand2020painless} to determine which element contains \emph{removable} basis functions. The idea is first to compute the average of the element-wise indicators. Then, we remove a basis function if its contribution remains smaller than a given percentage of the average.}
+
+In the following, we summarize the results from Darrigrand et al.~\cite{darrigrand2020painless} for elliptic energy-norm-based adaptive problems from the energy-norm perspective. After that, we extend these results to non-elliptic equations, and finally, we consider goal-oriented adaptivity applied to elliptic and non-elliptic problems. \revbdos{We can obtain all the proposed results by assuming (quasi)-$b$-orthogonality of the basis functions. However, this assumption is strong and unneeded for the energy-based adaptivity and, therefore, we only employ it for GOA}. 
+
+To do so, let us denote by \enquote{$\lesssim$} the inequality that holds up to a constant; that is, we represent $a\leq Cb$ by $a\lesssim b$, with $a,b,C \in \mathbb{R}$, and let us define the $L^2$-inner product of two possible complex and possibly vector valued functions $g_1$ and $g_2$ as:
+\begin{equation}
+ \scalaire{ g_1}{g_2}_{L^2(\Omega)} = \int_\Omega{g_1^Tg_2 \; \dO},
+ \label{eq:inner_product}
+\end{equation}
+where $g^T$ denotes the transpose of  $g$.  
+
+\subsubsection{Energy-norm based elliptic problems}
+
+For a given element $K \in \calT$, the objective is to quantify how much energy we lose in the solution when removing a subset of basis functions of the {\revb{set of removable basis functions} $\calR_K$. Specifically, we want to compute $\norm{u_{\calF} - u_{\calE_K}}_e^2$. If this quantity is small, we guarantee that the energy of the removed set of basis functions is insignificant. Therefore, the fine and the unrefined meshes would provide {\reva{comparable} results.
+
+Analogously to Cea's lemma proof, we derive:
+\begin{align}
+  \norm{u_{\calF}-u_{\calE_K}}_e^2 & = b(u_{\calF}-u_{\calE_K},u_{\calF}-u_{\calE_K})                                                                                         \\
+                                   & = b(u_{\calF}-u_{\calE_K},u_{\calF}-\Pi_{\calF}^{\calE_K} u_{\calF})+b(u_{\calF}-u_{\calE_K},\Pi_{\calF}^{\calE_K}u_{\calF}-u_{\calE_K}) \\
+                                   & \leq \norm{u_{\calF}-u_{\calE_K}}_{e}\norm{u_{\calF}-\Pi_{\calF}^{\calE_K}u_{\calF}}_e,
+\end{align}
+where we have used the $b$-orthogonality of $u_{\calF}-u_{\calE_K}$ with $\H_{\calE_K}$ and the Cauchy-{\revb{Schwarz} inequality. Therefore,
+\begin{equation}
+  \norm{u_{\calF}-u_{\calE_K}}_e \leq \norm{u_{\calF}-\Pi_{\calF}^{\calE_K} u_{\calF}}_e=\norm{\Pi_{\calF}^{\calR_K} u_{\calF}}_e. \label{eq:upperboundSPD}
+\end{equation}
+It is then natural to define the following element-wise error indicator: %\todoVD{Write something about the $l^2$-norm to justify the square (here and in the next subsection)}
+\begin{equation}
+  \eta_K\coloneqq \norm{\Pi_{\calF}^{\calR_K} u_{\calF}}_e^2, \quad \forall K \in \calT.\label{eq:SPDindicators}
+\end{equation}
+
+\subsubsection{Extension to energy-based non-elliptic problems}
+
+Again, our purpose is to compute $\norm{u_{\calF} - u_{\calE_K}}_e^2$ to eliminate the removable basis functions with low contribution to the solution. For that, let us start with the triangular inequality, which provides that
+\begin{equation}
+  \norm{u_\calF-u_{\calE_K}}_e \leq \norm{u_\calF-\Pi_{\calF}^{\calE_K}u_{\calF}}_e+\norm{\Pi_{\calF}^{\calE_K}u_\calF-u_{\calE_K}}_e.
+  \label{eq:TriUppBound}
+\end{equation}
+Let us assume now that $b$ satisfies the discrete inf-sup condition:
+\begin{equation}
+  \exists \, \gamma >0, \quad \inf_{\phi \in \H_{\calE_K}}\sup_{\psi \in \H_{\calE_K}}\frac{b(\phi, \psi)}{\norm{\phi}_{e}\norm{\psi}_{e}} \geq \gamma.
+  \label{eq:infsup}
+\end{equation}
+Then, using this inequality and the $b$-orthogonality of $u_{\calF}-u_{\calE_K}$ with respect to $\H_{\calE_K}$, we control the second term of \cref{eq:TriUppBound}:
+\begin{align}
+  \gamma\norm{\Pi_{\calF}^{\calE_K}u_\calF-u_{\calE_K}}_e & \leq \sup_{\psi \in \H_{\calE_K}}\frac{b(\Pi_{\calF}^{\calE_K}u_\calF-u_{\calE_K}, \psi)}{\norm{\psi}_{e}}                            \\
+                                                          & \leq \sup_{\psi \in \H_{\calE_K}}\frac{b(\Pi_{\calF}^{\calE_K}u_\calF-u_{\calF}, \psi)+b(u_\calF-u_{\calE_K}, \psi)}{\norm{\psi}_{e}} \\
+                                                          & \leq \sup_{\psi \in \H_{\calE_K}}\frac{M_b\norm{\Pi_{\calF}^{\calE_K}u_\calF-u_{\calF}}_e\norm{\psi}_e}{\norm{\psi}_{e}}              \\
+                                                          & \leq M_b \norm{u_{\calF}-\Pi_{\calF}^{\calE_K}u_\calF}_e,
+\end{align}
+where $M_b$ is the continuity constant of $b$. Therefore,
+\begin{equation}
+  \norm{u_\calF-u_{\calE_K}}_e^2 \lesssim \norm{u_\calF-\Pi_{\calF}^{\calE_K}u_{\calF}}_e^2=\norm{\Pi_{\calF}^{\calR_K}u_{\calF}}_e^2.
+  \label{eq:en_ne_bound}
+\end{equation}
+%
+Accordingly, we define the element-wise indicator as:
+\begin{equation}
+  \eta_K\coloneqq \norm{\Pi_{\calF}^{\calR_K} u_\calF}_{e}^2, \quad \forall K \in \calT.\label{eq:ENindicators}
+\end{equation}
+%
+The coarsening step will unrefine the elements that exhibit small $\eta_K$. Therefore, \cref{eq:en_ne_bound} ensures that the loss in the energy of the problem will be negligible when removing these basis functions.
+
+\subsubsection{Extension to goal-oriented adaptivity}
+GOA techniques aim to approximate specific quantities of finite element solutions rather than the global energy of the problem. These quantities with particular engineering applications are often called influence functions or QoIs. Thus, the objective is to produce a space $\H_{\calF}$ with a minimum dimension such that the error in the QoI is below a user-prescribed tolerance. To control the error in the QoI, we introduce the following {\revb{adjoint} problem \cite{prudhomme1999goal,oden2001goal} associated to \cref{eq:direct1}:
+\begin{var_for}
+  Find $v \in \H$ such that
+  \begin{equation}
+    \label{eq:adjoint}
+    b(\phi,v)=l(\phi), \quad \forall \phi\in \H,
+  \end{equation}
+\end{var_for}
+\noindent where $l: \H \longrightarrow \R$ is a linear continuous form. Hence, the QoI of the solution $u_\calF$ is denoted by $l(u_\calF)$. The discrete equivalent of this problem is given by:
+\begin{var_for}
+  Find $v_{\calF}\in \H_{\calF}$ such that
+  \begin{equation}
+    \label{eq:adjointH}
+    b(\phi_{\calF},v_{\calF})=l(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF},
+  \end{equation}
+\end{var_for}
+\noindent  where $v_{\calF}$ stands for the Galerkin approximation of the solution $v$ to the {\revb{adjoint} problem associated with the space $\H_{\calF}$. {\revb{For the mathematical analysis, we also consider the solution $v_{\calE_K}$ in $\calE_K$ associated with \cref{eq:adjointH}, although we never compute it in practice.}
+
+For a given element $K \in \calT$, we want to quantify how much the QoI changes when removing some basis functions from the {\revb{set of removable basis functions} $\calR_K$ associated with $K$. That is, we need to control $\abs{l(u_\calF)-l(u_{\calE_K})} \; \forall K\in \calT$.
+
+%For the coarsening process, we need to control the contribution to the QoI in the solution: $l(u_\calF)-l(u_{\calE_K})$ for $K\in \calT$.
+
+Since $\H_{\calE_K} \subset \H_\calF$, Galerkin orthogonality ensures that
+\begin{equation}
+  b(u_\calF-u_{\calE_K}, \phi)=0, \quad \forall \phi \in \H_{\calE_K}.
+\end{equation}
+Then,
+\begin{equation}
+  l(u_\calF)-l(u_{\calE_K})  = b(u_\calF-u_{\calE_K},v_\calF)  = b(u_\calF-u_{\calE_K},v_\calF-v_{\calE_K}).
+\end{equation}
+Using \cref{eq:decomposition} on $v_\calF$, we have that:
+
+\begin{align}
+  l(u_\calF)-l(u_{\calE_K}) & =  b(u_\calF-u_{\calE_K},\Pi_{\calF}^{\calR_K} v_{\calF}+\Pi_{\calF}^{\calE_K} v_{\calF}-v_{\calE_K})                        \\
+                            & = b(u_\calF-u_{\calE_K},\Pi_{\calF}^{\calR_K} v_{\calF})+b(u_\calF-u_{\calE_K},\Pi_{\calF}^{\calE_K} v_{\calF}-v_{\calE_K}).
+\end{align}
+%Furthermore, thanks to Galerkin orthogonality,
+%\begin{align}
+%  b( u_{\calF}-u_{\calE_K},\Pi_{\calF}^{\calE_K} v_{\calF}-v_{\calE_K})= 0.
+%\end{align}
+%Hence, applying \cref{eq:decomposition} on $u_\calF$,
+Again, thanks to Galerkin orthogonality the second term vanishes. Then, applying \cref{eq:decomposition} on $u_\calF$ to the remaining term, we have that
+\begin{align}
+  l(u_\calF)-l(u_{\calE_K}) & =  b(\Pi_{\calF}^{\calR_K} u_{\calF}+\Pi_{\calF}^{\calE_K}u_\calF-u_{\calE_K},\Pi_{\calF}^{\calR_K} v_{\calF})                                   \\
+                            & =b(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})+b(\Pi_{\calF}^{\calE_K}u_\calF-u_{\calE_K},\Pi_{\calF}^{\calR_K} v_{\calF}).
+\end{align}
+Additionally, if we assume that $\calE_K$ is (quasi) $b$-orthogonal to $\calR_K$ due to the (quasi)-orthogonality assumption of the basis functions, then
+\begin{equation}
+  b(\Pi_{\calF}^{\calE_K} u_{\calF}-u_{\calE_K},\Pi_{\calF}^{\calR_K} v_{\calF})\simeq 0,
+\end{equation}
+and consequently,
+
+\begin{equation}
+  \abs{l(u_\calF)-l(u_{\calE_K})} \simeq \abs{b(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}
+  \leq  \abs{a(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}.
+  \label{eq:UpperGOA}
+\end{equation}
+Then, we define the element-wise indicators as
+\begin{equation}
+  \eta_K \coloneqq \abs{a(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}, \quad \forall K\in \calT.
+  \label{eq:GOAupperbound}
+\end{equation}
+
+%Since $b$ is continuous on $\H$ with respect to the energy norm, we have that for any bilinear form that defines an inner product on $\H$, and in particular $\tilde{b}$,
+%\begin{equation}
+%  \abs{l(u_\calF)-l(u_{\calE_K})} \lesssim \norm{\Pi_{\calF}^{\calR_K} u_{\calF}}_{e}\norm{\Pi_{\calF}^{\calR_K} v_{\calF}}_{e},  \label{eq:UpperGOA}
+%\end{equation}
+%where the continuity constant, depending on the chosen norm, has been omitted. Then, it is natural to define the element-wise indicators as
+%\begin{equation}
+%  \eta_K \coloneqq \norm{\Pi_{\calF}^{\calR_K} u_{\calF}}_{e}\norm{\Pi_{\calF}^{\calR_K} v_{\calF}}_{e}, \quad \forall K\in \calT.
+%  \label{eq:GOAupperbound}
+%\end{equation}
+%\noindent \tcr{Note that, in practice, it is possible to derive a sharper upper bound than \cref{eq:UpperGOA} and define the indicators using it.}
+%
+%These expressions are valid for elliptic and non-elliptic problems only by correctly defining the energy norm: using $b$ for the former and $a$ for the latter.
+Here again, \cref{eq:UpperGOA} ensures that eliminating the basis functions associated with small indicators during the coarsening process should have a limited effect on the error of the QoI.
+
+
+\emph{Remark}: Since $b$ is continuous on $\H$ with respect to the energy norm, we also have
+\begin{equation}
+  \abs{l(u_\calF)-l(u_{\calE_K})} \simeq \abs{b(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}
+  \lesssim  \norm{\Pi_{\calF}^{\calR_K} u_{\calF}}_{e}\norm{\Pi_{\calF}^{\calR_K} v_{\calF}}_{e},
+  \label{eq:GOA_aternative}
+\end{equation}
+and we could also define the element-wise indicators based on the above equation. Notice that if we select $l$ to be the source term in the {\revb{adjoint} problem defined by~\cref{eq:adjoint}, with \cref{eq:GOA_aternative} we recover the element-wise indicators derived previously in \cref{eq:SPDindicators,eq:ENindicators}. However, in the forthcoming numerical results, we employ the estimators based on \cref{eq:GOAupperbound}.
+
+%% dejarlo para la revision si nos dicen algo
+%\tcr{
+%\emph{Remark 2}: All~\cref{eq:upperboundSPD,eq:en_ne_bound,eq:UpperGOA} are given in terms of the energy norm. Regardless, it is often possible to define alternative norms to obtain sharper upper bounds depending on the problem. The study of alternative norms redefining error indicators is out of the scope of this article.
+%}
+

@@ -1,0 +1,55 @@
+% !TEX root =  ../unref_general.tex
+\section{Error indicators for GOA problems}
+\label{sec:Indicators}
+%\begin{align}
+%\abs{l(\tilde{u})}& =\abs{ b(\tilde{u},v)}\\
+%&=\abs{\sum_{K \in \calT}b_{K}(\tilde{u},v)}\\
+%&=\abs{\sum_{K \in \calT}b_{K}(\tilde{u},v^{*}+\tilde{v})}\\
+%&=\abs{\sum_{K \in \calT}b_{K}(\tilde{u},v^{*}) + \sum_{K \in \calT}b_{K}(\tilde{u},\tilde{v})}\\
+%&\underset{\perp}{\approx} \abs{\sum_{K \in \calT}b_{K}(\tilde{u},\tilde{v})}\\
+%&\leq \sum_{K \in \calT} \abs{b_{K}(\tilde{u},\tilde{v})},
+%\end{align}
+%
+%\begin{align}
+%			\abs{l(u_{\calT})}& =\abs{ b(u_{\calT},v_{\calT})}\\
+%			&=\abs{\sum_{K \in \calT}b_{K}(u^{*} + \tilde{u}, v^{*} + \tilde{v})}\\
+%			&=\abs{\sum_{K \in \calT}b_{K}(u^{*}, v^{*}) + \sum_{K \in \calT}b_{K}(u^{*}, \tilde{v}) + \sum_{K \in \calT}b_{K}(\tilde{u}, v^{*}) + \sum_{K \in \calT}b_{K}(\tilde{u}, \tilde{v})}\\
+%			&\underset{\perp}{\approx} \abs{\sum_{K \in \calT}b_{K}(u^{*},v^{*}) + \sum_{K \in \calT}b_{K}(\tilde{u},\tilde{v})}\\
+%			&\leq \sum_{K \in \calT} \abs{b_{K}(u^{*},v^{*})} + \sum_{K \in \calT} \abs{b_{K}(\tilde{u},\tilde{v})} \\
+%			&< \sum_{K \in \calT} \abs{b_{K}(u^{*},v^{*})} + \varepsilon,
+%		\end{align}
+%
+\begin{defn}[Element-wise error]
+  We compute an upper bound of $\abs{l(u_{F} - u_{E})}$ that employs only local and computable quantities. Thus, for a given $K$ and for $\Pi_{F}^{R_{\textrm{m}}} u_{F}, \Pi_{F}^{R_{\textrm{m}}} v_{F} \in \H_{F}$, we define the element-wise error isotropic and anisotropic indicators as
+  \begin{align}
+    \eta_{K}    & \coloneqq \frac{1}{R_{\textrm{m}}(K)} \abs{\hat{b}_{K}(\Pi_{F}^{R_{\textrm{m}}(K)} u_{F},\Pi_{F}^{R_{\textrm{m}}(K)} v_{F})},\label{eq:erroriso} \                                         \\
+    \eta_{K, i} & \coloneqq \frac{1}{R_{\textrm{m}}(K,i)} \abs{\hat{b}_{K, i}(\Pi_{F}^{R_{\textrm{m}}(K, i)} u_{F},\Pi_{F}^{R_{\textrm{m}}(K, i)} v_{F})}, \quad \forall i \in \calD \label{eq:erroranyiso},
+  \end{align}
+  where $R_{\textrm{m}}(K)$ denotes the number of removable basis functions associated to $K$, while the subscript $i$ stands for the $i$-direction.
+\end{defn}
+
+We compute the average per basis function to determine which element contains useless basis functions. If a basis function contribution to the error indicator is below a percentage of the average prescribed by the user, it is removed. We recall that the global average is computed only once on the initial (finest) mesh and remains fixed during the unrefinement process. By doing so, we ensure that the number of unrefinements decreases along the iterative coarsening process that will eventually stop \cite{darrigrand2020painless}.
+\begin{defn}[Average quantity]
+  The average contribution over all the elements is computed as:
+  \begin{equation}
+    \label{eq:avg}
+    \textrm{Avg} = \frac{1}{|\calT^{R_{\textrm{m}}}|}\sum_{K \in \calT^{R_{\textrm{m}}}}\eta_{K},
+  \end{equation}
+  where $\calT^{R_{\textrm{m}}}$ denotes the set of elements that contains removable basis functions and $|\calT^{R_{\textrm{m}}}|$ stands for its cardinality. For all $K \in \calT^{R_{\textrm{m}}}$ such that $K$ is not a root element and $\calS(K) \subset \calT^{R_{\textrm{m}}}$ (its siblinghood), the local average contribution over the leaves of a tree is denoted as follows
+  \begin{equation}
+    \label{eq:avglocal}
+    \textrm{Avg}^{\calS(K)} = \frac{1}{|\calS(K)|}\sum_{K \in \calS(K)}\eta_{K}.
+  \end{equation}
+\end{defn}
+
+%\begin{defn}[Bilinear form for specific cases]
+%	During this work, we employ the following bilinear forms $\hat{b}$ for Helmholtz and Convection-Dominated problem, respectively.
+%	\begin{equation}
+%		\label{eq:helmholtz}
+%		\hat{b}(u,v) = \int_{\Omega} \grad u \cdot \grad v + k^2 u v,
+%	\end{equation}
+%	\begin{equation}
+%		\label{eq:convection}
+%		\hat{b}(u,v) = \int_{\Omega} \epsilon \, \grad u \cdot \grad v - \sigma \grad u.
+%	\end{equation}
+%\end{defn}

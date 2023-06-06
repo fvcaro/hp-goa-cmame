@@ -1,0 +1,41 @@
+% !TEX root =  ../unref_general.tex
+
+\section{Conclusions}
+\label{sec:ccl}
+
+
+This work employs an automatically adaptive mesh-generation strategy that alternates refinement steps with quasi-optimal $hp$-unrefinement actions. The basis functions with the lowest contribution to the solution are removed during the coarsening part.
+
+How to efficiently identify which basis functions to remove is challenging. In this regard, in this work, we extend an existing coarsening strategy suitable for energy-norm adaptivity to non-elliptic problems and goal-oriented adaptive strategies. In particular, we estimate the contribution of the basis functions to the solution in terms of an inner product associated with the bilinear form of the problem, and then, each coarsening step removes the basis functions according to these new estimations. The resulting algorithm is easy-to-implement since it employs hierarchical data structures that avoid the need for the so-called $1$-irregularity rule for handling \emph{hanging nodes}.
+
+Our numerical results show the performance of our algorithm by solving different $2$D and $3$D problems based on Poisson, Helmholtz, and convection-dominated equations, and they demonstrate the robustness and fast convergence of our $hp$-adaptive method. Thus, these results and the straightforward implementation of our approach suggest that this approach can be easily adapted to industrial applications.
+
+Possible extensions of this work include anisotropic $h$-refinements and electromagnetic applications. For the latter purpose, the hierarchical data structures require an extension to $H$(\emph{curl}) conforming to finite element spaces.
+
+
+
+%%%% PREVIOUS 2
+
+%This work is based on the automatically mesh-refinement strategy proposed by Darrigrand et al.~\cite{darrigrand2020painless}, which alternates global $h$- or $p$-refinements with quasi-optimal $hp$-unrefinement steps, where the basis functions with the lowest contribution to the solution are marked and subsequently eliminated.
+%
+%Here we extend this algorithm to non-elliptic problems and goal-oriented adaptive strategies. In particular, we estimate the contribution of the basis functions to the solution in terms of an inner product associated with the bilinear form of the problem, and then, each coarsening step marks the basis functions according to these new estimations. The resulting algorithm is easy-to-implement since it employs the hierarchical data structures that avoid the need for the so-called $1$-irregularity rule for handling \emph{hanging nodes}.
+%
+%We show the performance of our algorithm by solving three $2$D problems based on Poisson, Helmholtz, and convection-dominated equations. Numerical results demonstrate the robustness and fast convergence of our $hp$-adaptive algorithm. Thus, these results and the straightforward implementation of our approach suggest that this algorithm can be easily adapted to industrial applications.
+%
+%While we just focused on two-dimensional ($2$D) results, the algorithm is general for 3D problems. Possible extensions of this work include anisotropic $h$-refinements and/or electromagnetic applications. For the latter purpose, the hierarchical data structures require an extension to $H$(\emph{curl}) conforming finite element spaces.
+%\todoJA{Rewrite if we include a 3D example}
+
+
+
+
+
+%%%% PREVIOUS
+
+%This work extended the algorithm developed by Darrigrand et al. \cite{darrigrand2020painless} to non-elliptic problems and goal-oriented adaptivity. To this end, we estimate the basis functions' contributions to the solution in terms of an inner product associated with the bilinear form of the problem. The resulting algorithm is easy-to-implement since it uses the hierarchical data structures proposed by Zander et al. \cite{zander2015multi,zander2016multi,zander2017multi}, avoiding the need for the so-called $1$-irregularity rule for handling \emph{hanging nodes}.
+%
+%Following  \cite{darrigrand2020painless}, our approach alternates global $h$- or $p$-refinements with local and optimal $hp$-unrefinements. Each unrefinement step marks the basis functions with the lowest contribution to an upper bound of the representation of the quantity of interest. We show the performance of our algorithm by solving three $2$D problems based on Poisson, Helmholtz, and convection-dominated equations. Numerical results demonstrate the robustness and fast convergence of our $hp$-adaptive algorithm.
+%
+%While we just focused on two-dimensional ($2$D) results, the algorithm is general for 3D problems. Possible extensions of this work include electromagnetic applications. For this purpose, the hierarchical data structures require an extension to $H$(\emph{curl}) conforming finite element spaces.
+
+
+%%%%%%%%% On the one hand, we eliminated the restriction to elliptic problems in \cite{darrigrand2020painless} by redefining the element-wise indicators to guide the adaptivity in non-elliptic problems. Conversely, we construct an upper bound of the error representation to drive the adaptivity in non-elliptic goal-oriented problems.

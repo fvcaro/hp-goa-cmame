@@ -1,0 +1,1236 @@
+% !TEX root =  unref_general.tex
+%#1 is the path for the data
+%#2 is the iteration for the mesh around 1% error
+%#3 is the iteration for the h mesh around 1% error
+%#4 column name of the error
+\newcommand{\PbName}{}
+\newcommand{\ColName}{}
+
+\newcommand{\FigurePath}{Figures}
+\newcommand{\DataPath}{}
+
+%:\errorplotlog
+\newcommand{\errorplotlog}[3][]{%AquÃ­ empieza la DEFINICION del comando \errorplotlog, el cual tiene 3 argumentos
+
+  \renewcommand{\DataPath}{\FigurePath/#2}
+
+  \renewcommand{\PbName}{#2} %Problem name
+  \renewcommand{\ColName}{#3} %Column name
+
+  %\findmax{\DataPath/outputs.txt}{nr_dof}{\maxdof}
+  %\findmin{\DataPath/outputs.txt}{nr_dof}{\mindof}
+  %\lastelement{\DataPath/outputs.txt}{nr_dof}{\lastdof}
+  %\lastelement{\DataPath/outputs.txt}{error_H1_exact}{\lasterror}
+  %\findmaxDbl{\DataPath/outputs.txt}{error_H1_exact}{\maxerror}
+  %\findminDbl{\DataPath/outputs.txt}{#2}{\minerror}
+
+  \tikzset{/tikz/external/export next=false}
+  \begin{tikzpicture}
+    \pgfplotsset{xmode=log}
+
+    \begin{axis}[name=mainerrorplot,
+        xlabel={Number of DoFs, $N$ (log scale)}, %Eje x
+        %x dir=reverse,
+        ylabel=Relative error in \% (log scale), %Eje y
+        ymode=log,
+        xmode=log,
+        %ymin=1e-2,
+        %ymax=3e1,
+        %xmax=5e4,
+        %xmin=5e0,
+        %yticklabel pos=right,
+        width=\textwidth,height=\plotheight,
+        ylabel near ticks,
+        xlabel near ticks,
+        enlargelimits=true,
+        legend style={draw=black,fill=white,legend cell align=left, at={(0.5,1.01)}, anchor=south}, %Celda sobre plot (d)
+        legend columns=-1
+        %legend columns=4,
+        %transpose legend,
+        %legend columns=10,
+        %reverse legend,
+      ]
+      %
+      % Notas (Felipe): #1 es el parÃ¡metro para el mÃ©todo y #2 es el nombre de la carpeta del problema \PbName
+      %%%%%%%%%%%%%%% Inicia opciones en legend %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      \foreach\method in {#1}{												%#1 es el parÃ¡metro para el mÃ©todo
+          \ifthenelse{\equal{\method}{h}}{
+            \foreach \order in {1,2}{
+                \edef\temp{\noexpand\addlegendentry{$h$ ($p=\order$)}}
+                \pgfplotstableread{\FigurePath/\PbName/h/order_\order/outputs.txt}\loadedtable
+                \addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{\ColName}] {\loadedtable};
+                \temp
+              }
+          }{}
+          \ifthenelse{\equal{\method}{hp}}{
+            \foreach \jdex in {1}{
+                \edef\temp{\noexpand\addlegendentry{$hp$ $(p+2)$}}
+                \pgfplotstableread{\FigurePath/\PbName/hp/order_1/outputs.txt}\loadedtable
+                \addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{\ColName}] {\loadedtable};
+                \temp
+              }
+          }{}
+          \ifthenelse{\equal{\method}{p}}{
+            \edef\temp{\noexpand\addlegendentry{$p$}}
+            \pgfplotstableread{\FigurePath/\PbName/p/outputs.txt}\loadedtable
+            \addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{\ColName}] {\loadedtable};
+            \temp
+          }{}
+        }
+
+    \end{axis}
+  \end{tikzpicture}
+}%AquÃ­ TERMINA la DEFINICION del comando \errorplotlog
+
+%%%%%%%%%%%%%%%%%%%%%%%%\computeLinearCoef %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\newcommand{\computeLinearCoef}[2]{
+%    \lastelement{#1}{iter}{\lastiter}
+%    \pgfmathsetmacro\iterInter{\lastiter-3}
+%	\getelemdbl{#1}{Error}{\iterInter}{\error}
+%	\getelem{#1}{nr_dof}{\iterInter}{\dof}
+%
+%	\pgfmathsetmacro\iterInter{\lastiter-1}
+%	\getelemdbl{#1}{Error}{\iterInter}{\errorTwo}
+%	\getelem{#1}{nr_dof}{\iterInter}{\dofTwo}
+%
+%	\pgfmathsetmacro#2{(ln(\error)-ln(\errorTwo))/(ln(\dof)-ln(\dofTwo))}
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%\computeLinearCoef %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\newcommand{\plothp}[2][]{
+%\renewcommand{\DataPath}{\FigurePath/#2/hp/p2/unref_0.1/unref_h_0.3}
+
+\newcommand{\plotmultisolmesh}[5][]{
+
+
+
+  % \foreach \eachiter in {7,10,16,27}{
+  \foreach \eachiter in {#3#4#5}{
+      \FormatIntegerThreeDigit{\eachiter}{\eachiterformated}
+      \FormatIntegerTwoDigit{\eachiter}{\eachiterformatedTwo}
+      %
+      \begin{subfigure}{\subplotwidth}
+        \plothpsolsol{#2/hp/order_1}{\eachiterformatedTwo}{Direct_solution_real}{unitsquare}
+        \caption{Solution at iteration \eachiter.}
+        \label{fig:#2_\eachiterformated_iter_sol}
+      \end{subfigure}
+      \begin{subfigure}{\subplotwidth}
+        \plothpmeshone{#2/hp/order_1}{\eachiterformated}{X}{\eachiter}
+        \caption{$hp$-adapted mesh at iteration \eachiter.}
+        \label{fig:#2_\eachiterformated_iter_mesh}
+      \end{subfigure}
+      % \begin{subfigure}{\subplotwidth}
+      %   \plothpmeshone{#2/hp/order_1}{\eachiterformated}{Y}{\eachiter}
+      %   \caption{$hp$-adapted mesh iteration: \eachiter.}
+      %   \label{fig:#2_\eachiterformated_iter_mesh}
+      % \end{subfigure}
+    }
+  %
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DEFINICION de \plothpsinglemesh. Tiene 2 argumentos, si no se especifica un valor en el argumento queda un espacio en blanco por default.
+\newcommand{\plothpsinglemesh}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}%\PbName/hp
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerThreeDigit{\endIter}{\endIterformated}
+
+  \foreach \eachiter in {1,2,3,4,5,6}{
+      \FormatIntegerThreeDigit{\eachiter}{\eachiterformated}
+      \begin{subfigure}{\subplotwidth}
+        \plothpmeshone{#2/hp/order_1}{\eachiterformated}{X}{\eachiter}
+        \caption{$hp$-adapted mesh iteration: \eachiter.}
+        \label{fig:#2_\eachiterformated_iter}
+      \end{subfigure}
+    }
+}
+% DEFINICION de \plothpmeshone. Por definir el numero de argumentos.
+\newcommand{\plothpmeshone}[4]{
+  \renewcommand{\DataPath}{\FigurePath/#1}
+
+  \lastelement{\DataPath/outputs.txt}{MaxP}{\maxp}
+  \lastelement{\DataPath/outputs.txt}{MinP}{\minp}
+
+  %\pgfplotsset{colormap/jet} %Barra de color
+  \pgfplotsset{colormap/YlOrRd} %Barra de color
+  \tikzset{/tikz/external/export next=false}
+  \begin{tikzpicture}
+    \begin{axis}[name=master,
+        width=\textwidth,height=\textwidth,
+        enlargelimits=false,
+        xlabel=$x$,
+        ylabel=$y$,
+        xlabel near ticks,
+        ylabel near ticks,
+        colorbar horizontal,
+        colorbar style={%
+            xtick={1,2,...,\maxp},
+            title={Order of approximation},
+            at={(master.above north west)},anchor=south west,
+            yshift=2pt,
+            title style={
+                yshift=2pt
+              },
+            yshift=0.2em,
+            xticklabel pos=upper,
+          },
+        %point meta min=\minp,
+        point meta min=1,
+        point meta max=\maxp,
+      ]
+
+      \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/mesh_#3_#2.png};
+
+    \end{axis}
+  \end{tikzpicture}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%\PLOT_HP_MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%: \plothpmesh{#2/hp}{\endIterformated}{\idim} \idim in {X,Y}
+\newcommand{\plothpmesh}[3]{
+  \renewcommand{\DataPath}{\FigurePath/#1}
+
+  \lastelement{\DataPath/outputs.txt}{MaxP}{\maxp}
+  \lastelement{\DataPath/outputs.txt}{MinP}{\minp}
+
+  %\pgfplotsset{colormap/jet} %Barra de color
+  \pgfplotsset{colormap/YlOrRd} %Barra de color
+  \tikzset{/tikz/external/export next=false}
+  \begin{tikzpicture}
+    \begin{axis}[name=master,
+        width=\textwidth,height=\textwidth,
+        enlargelimits=false,
+        xlabel=$x$,
+        ylabel=$y$,
+        xlabel near ticks,
+        ylabel near ticks,
+        colorbar horizontal,
+        colorbar style={%
+            xtick={1,2,...,\maxp},
+            title={Order of approximation},
+            at={(master.above north west)},anchor=south west,
+            yshift=2pt,
+            title style={
+                yshift=2pt
+              },
+            yshift=0.2em,
+            xticklabel pos=upper,
+          },
+        %point meta min=\minp,
+        point meta min=1,
+        point meta max=\maxp,
+      ]
+      %
+      \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/mesh_#3_#2.png}; %Li­mites del dominio de los subplots (a) y (b). #3 X o Y, #2 por ejemplo 015
+
+    \end{axis}
+  \end{tikzpicture}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%% \PLOT_HP_MESH%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%\PLOT_HP_LEVEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%: \plothplevel{#2/hp}{\endIterformated}{\idim}{ \idim in {X,Y,Z}
+\newcommand{\plothplevel}[3]{
+  \renewcommand{\DataPath}{\FigurePath/#1}
+
+  \lastelement{\DataPath/outputs.txt}{MaxP}{\maxp}
+  \lastelement{\DataPath/outputs.txt}{MinP}{\minp}
+
+  %\pgfplotsset{colormap/jet} %Barra de color
+  \pgfplotsset{colormap/YlOrRd} %Barra de color
+  \tikzset{/tikz/external/export next=false}
+  \begin{tikzpicture}
+    \begin{axis}[name=master,
+        width=\textwidth,height=\textwidth,
+        enlargelimits=false,
+        %xlabel=$x$,
+        %ylabel=$y$,
+        %xlabel near ticks,
+        %ylabel near ticks,
+        %axis line style={draw=none},
+        %tick style={draw=none},
+        hide axis,
+        xticklabels={},
+        yticklabels={},
+        colorbar horizontal,
+        colorbar style={%
+            xtick={1,2,...,\maxp},
+            title={Order of approximation},
+            at={(master.above north west)},anchor=south west,
+            yshift=10pt,
+            title style={
+                yshift=2pt
+              },
+            yshift=0.2em,
+            xticklabel pos=upper,
+          },
+        %point meta min=\minp,
+        point meta min=1,
+        point meta max=\maxp,
+      ]
+      %
+      \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/boxes/box_mesh_#3_#2.png};
+
+    \end{axis}
+  \end{tikzpicture}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%% \PLOT_HP_LEVEL%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%% AquÃ­ EMPIEZA la DEFINICION del COMANDO \PLOT_H_MESH el cual tiene 2 argumentos %%%%%%%%%%
+\newcommand{\plothmesh}[2]{%\plothmesh{#2/h/unref_0.1/unref_h_0.3/order_1/}{\endIterhformated}{1}
+  \renewcommand{\DataPath}{\FigurePath/#1} %AquÃ­ #1 es el 1er parÃ¡metro en la llamada de \plothpmesh, es decir, #2/h/order_1
+  % \newcommand{\N}{\mathbb N}
+
+  %\lastelement{\DataPath/outputs.txt}{MaxP}{\maxp}
+  %\lastelement{\DataPath/outputs.txt}{MinP}{\minp}
+
+  %\pgfplotsset{colormap/YlOrRd}
+  \begin{tikzpicture}
+    \begin{axis}[name=master,
+        width=\textwidth,height=\textwidth,
+        enlargelimits=false,
+        xlabel=$x$,
+        ylabel=$y$,
+        xlabel near ticks,
+        ylabel near ticks,
+      ]
+      %
+      \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/grid_#2.png}; %LÃ­mites del dominio de los subplots (c). %#2 es \endIterformated, un nÃºmero de 2/3 dÃ­gitos, depende de la rutina
+      %
+      %\IfSubStr{#1}{square}{
+      %}{
+      %\addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/coarse_mesh_#2_1.png};
+      %}
+
+    \end{axis}
+  \end{tikzpicture}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%% Aqui­ TERMINA la DEFINICION del COMANDO \PLOTHMESH %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Aqui empieza la DEFINICION del COMANDO \plothp el cual tiene 2 argumentos, si no se especifica un valor en el argumento queda un espacio en blanco por default.
+\newcommand{\plothp}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}%\PbName/hp
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+  %\findmin{\DataPath/outputs.txt}{iter}{\initIter}
+
+  %\pgfmathparse{subtract(#2,0)}
+  %\pgfmathtruncatemacro\index{\pgfmathresult}
+  %\getelem{\DataPath/outputs.txt}{nr_dof}{\index}{\nrdof}
+  %\getelemdbl{\DataPath/outputs.txt}{Error_H1}{\index}{\error}
+
+  \FormatIntegerThreeDigit{\endIter}{\endIterformated}
+
+  \foreach \idim in {X,Y}{
+      \begin{subfigure}{\subplotwidth} %subplot (a) (b)
+        \plothpmesh{#2/hp/order_1}{\endIterformated}{\idim}
+        \caption{Final $hp$-adapted mesh with polynomial orders in the \ifthenelse{\equal{\idim}{X}}{$x$}{$y$}-direction.}
+        \label{fig:#2_\idim_final}
+      \end{subfigure}
+    }
+
+  %\pgfmathparse{subtract(\endIter,0)}
+  %\pgfmathtruncatemacro\endIterIndex{\pgfmathresult}
+
+  %\getelem{\DataPath/outputs.txt}{nr_dof}{\endIter}{\nrdofHpEnd}
+  %\getelemdbl{\DataPath/outputs.txt}{Error_H1}{\endIter}{\errorHpEnd}
+
+  %
+  \findmax{\FigurePath/#2/h/order_1/outputs.txt}{iter}{\endIterh}
+
+
+  %\getelemdbl{\FigurePath/#2/h/order_1/outputs.txt}{Error}{\endIterh}{\errorh}
+  %\getelem{\FigurePath/#2/h/order_1/outputs.txt}{nr_dof}{\endIterh}{\nrdofh}
+
+  \FormatIntegerThreeDigit{\endIterh}{\endIterhformated}
+
+  \begin{subfigure}{\subplotwidth} %subplot (c)
+    \plothmesh{#2/h/order_1}{\endIterhformated}{}
+    \caption{Final $h$-adapted mesh, $p=1$.}
+    \label{fig:#2_h_final}
+  \end{subfigure}
+  %
+  %\begin{subfigure}{\subplotwidth} %subplot (c)
+  %%\plothmesh{#1/h/unref_0.1}{\endIterh}
+  %%\FormatIntegerThreeDigit{\endIterh}{\endIterhformated}
+  %\FormatIntegerThreeDigit{\endIterh}{\endIterhformated}
+  %\plothmesh{#2/h/order_1}{\endIterhformated}{}
+  %\caption{Final adapted $h$-mesh, $p=1$.}
+  %\label{fig:#2h_final}
+  %\end{subfigure}
+  %%
+  %
+  \begin{subfigure}{\subplotwidth} %subplot (d)
+    %
+    \errorplotlog[#1]{#2}{Error}
+    %%
+    \subcaption{Evolution of \captionifthenproblem{#2}.}
+    \label{fig:#2_error}
+
+  \end{subfigure}
+}
+
+%% Aqui­ empieza la DEFINICION del COMANDO }ºNON. Un llamado es por ejemplo \plothpnon[hp,h]{Helm2DGOANon}.
+\newcommand{\plothpnon}[2][]{
+
+  \ifthenelse{\equal{#2}{ConvDiff2DGOANon}}{
+  	\renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}%\PbName/hp
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+  %\findmin{\DataPath/outputs.txt}{iter}{\initIter}
+
+  %\pgfmathparse{subtract(#2,0)}
+  %\pgfmathtruncatemacro\index{\pgfmathresult}
+  %\getelem{\DataPath/outputs.txt}{nr_dof}{\index}{\nrdof}
+  %\getelemdbl{\DataPath/outputs.txt}{Error_H1}{\index}{\error}
+
+  \FormatIntegerThreeDigit{\endIter}{\endIterformated}
+
+  \foreach \idim in {X,Y}{
+      \begin{subfigure}{\subplotwidth} %subplot (a) (b)
+        \plothpmesh{#2/hp/order_1}{\endIterformated}{\idim}
+        \caption{Final $hp$-adapted mesh with polynomial orders in the \ifthenelse{\equal{\idim}{X}}{$x$}{$y$}-direction.}
+        \label{fig:#2_\idim_final}
+      \end{subfigure}
+    }
+
+  %\pgfmathparse{subtract(\endIter,0)}
+  %\pgfmathtruncatemacro\endIterIndex{\pgfmathresult}
+
+  %\getelem{\DataPath/outputs.txt}{nr_dof}{\endIter}{\nrdofHpEnd}
+  %\getelemdbl{\DataPath/outputs.txt}{Error_H1}{\endIter}{\errorHpEnd}
+
+  %
+  \findmax{\FigurePath/#2/h/order_1/outputs.txt}{iter}{\endIterh}
+
+
+  %\getelemdbl{\FigurePath/#2/h/order_1/outputs.txt}{Error}{\endIterh}{\errorh}
+  %\getelem{\FigurePath/#2/h/order_1/outputs.txt}{nr_dof}{\endIterh}{\nrdofh}
+
+  \FormatIntegerThreeDigit{\endIterh}{\endIterhformated}
+
+  \begin{subfigure}{\subplotwidth} %subplot (c)
+    \plothmesh{#2/h/order_1}{\endIterhformated}{}
+    \caption{Final $h$-adapted mesh, $p=1$.}
+    \label{fig:#2_h_final}
+  \end{subfigure}
+  \begin{subfigure}{\subplotwidth} %subplot (d)
+    %
+    \errorplotlog[#1]{#2}{Lower}
+    %%
+    \subcaption{Evolution of \captionifthenproblem{#2}.}
+    \label{fig:#2_lower}
+
+  \end{subfigure}
+  }
+  {
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}%\PbName/hp
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+  %\findmin{\DataPath/outputs.txt}{iter}{\initIter}
+
+  %\pgfmathparse{subtract(#2,0)}
+  %\pgfmathtruncatemacro\index{\pgfmathresult}
+  %\getelem{\DataPath/outputs.txt}{nr_dof}{\index}{\nrdof}
+  %\getelemdbl{\DataPath/outputs.txt}{Error_H1}{\index}{\error}
+
+  \FormatIntegerThreeDigit{\endIter}{\endIterformated}
+
+  \foreach \idim in {X,Y}{
+      \begin{subfigure}{\subplotwidth} %subplot (a) (b)
+        \plothpmesh{#2/hp/order_1}{\endIterformated}{\idim}
+        \caption{Final $hp$-adapted mesh with polynomial orders in the \ifthenelse{\equal{\idim}{X}}{$x$}{$y$}-direction.}
+        \label{fig:#2_\idim_final}
+      \end{subfigure}
+    }
+
+  \findmax{\FigurePath/#2/h/order_1/outputs.txt}{iter}{\endIterh}
+
+  \FormatIntegerThreeDigit{\endIterh}{\endIterhformated}
+
+  \begin{subfigure}{\subplotwidth} %subplot (c)
+    \plothmesh{#2/h/order_1}{\endIterhformated}{}
+    \caption{Final $h$-adapted mesh, $p=1$.}
+    \label{fig:#2_h_final}
+  \end{subfigure}
+  }
+
+  }
+
+
+%% Aqui­ empieza la DEFINICION del COMANDO \PLOTHPonemesh.
+\newcommand{\plothponemesh}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}%\PbName/hp
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+  %\findmin{\DataPath/outputs.txt}{iter}{\initIter}
+
+  %\pgfmathparse{subtract(#2,0)}
+  %\pgfmathtruncatemacro\index{\pgfmathresult}
+  %\getelem{\DataPath/outputs.txt}{nr_dof}{\index}{\nrdof}
+  %\getelemdbl{\DataPath/outputs.txt}{Error_H1}{\index}{\error}
+
+  \FormatIntegerThreeDigit{\endIter}{\endIterformated}
+
+  \foreach \idim in {X,Y}{
+      \begin{subfigure}{\subplotwidth} %subplot (a) (b)
+        \plothpmesh{#2/hp/order_1}{\endIterformated}{\idim}
+        \caption{Final $hp$-adapted mesh with polynomial orders in the \ifthenelse{\equal{\idim}{X}}{$x$}{$y$}-direction.}
+        \label{fig:#2_\idim_final}
+      \end{subfigure}
+    }
+
+  %\pgfmathparse{subtract(\endIter,0)}
+  %\pgfmathtruncatemacro\endIterIndex{\pgfmathresult}
+
+  %\getelem{\DataPath/outputs.txt}{nr_dof}{\endIter}{\nrdofHpEnd}
+  %\getelemdbl{\DataPath/outputs.txt}{Error_H1}{\endIter}{\errorHpEnd}
+
+  %
+  \findmax{\FigurePath/#2/h/order_1/outputs.txt}{iter}{\endIterh}
+
+
+  %\getelemdbl{\FigurePath/#2/h/order_1/outputs.txt}{Error}{\endIterh}{\errorh}
+  %\getelem{\FigurePath/#2/h/order_1/outputs.txt}{nr_dof}{\endIterh}{\nrdofh}
+
+  \FormatIntegerThreeDigit{\endIterh}{\endIterhformated}
+
+  \begin{subfigure}{\subplotwidth} %subplot (c)
+    \plothmesh{#2/h/order_1}{\endIterhformated}{}
+    \caption{Final $h$-adapted mesh, $p=1$.}
+    \label{fig:#2_h_final}
+  \end{subfigure}
+}
+
+%% DEFINICION de \plothpcom
+\newcommand{\plothpcom}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}%\PbName/hp
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerThreeDigit{\endIter}{\endIterformated}
+
+  \findmax{\FigurePath/#2/h/order_1/outputs.txt}{iter}{\endIterh}
+
+  \FormatIntegerThreeDigit{\endIterh}{\endIterhformated}
+  %
+  \begin{subfigure}{\subplotwidth} %subplot (a)
+    %
+    \errorplotlog[#1]{#2}{Lower}
+    %%
+    \subcaption{Evolution of \captionifthenproblem{#2}.}
+    \label{fig:#2_lower_com}
+
+  \end{subfigure}
+  %
+  \hfill
+  %
+  \begin{subfigure}{\subplotwidth} %subplot (b)
+    %
+    \errorplotlog[#1]{#2}{Error}
+    %%
+    \subcaption{Evolution of \captionifthenlegend{#2}.}
+    \label{fig:#2_error_com}
+
+  \end{subfigure}
+}
+
+% DEFINICION de \plothpGOA (#1 optional parameter which defines the domain)
+\newcommand{\plothpGOA}[3][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerTwoDigit{\endIter}{\endIterformated}
+  \FormatIntegerThreeDigit{\endIter}{\endIterformatedthree}
+  %
+  \begin{subfigure}{\subplotwidth}
+    \plothpsolGOA{#2/hp/order_1}{\endIterformated}{Direct_solution_#3}{#1}%
+    \subcaption{Solution to the direct problem.}
+    \label{fig:#2_dir}
+  \end{subfigure}
+  \begin{subfigure}{\subplotwidth}
+    \plothpsolGOA{#2/hp/order_1}{\endIterformated}{Adjoint_solution_#3}{#1}%
+    \subcaption{Solution to the adjoint problem.}
+    \label{fig:#2_adj}
+  \end{subfigure}
+}%
+%%%%%%%%%%%%%%%%%%%%%%%%%% \plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%.   \captionifthenproblem{#2}
+
+%Aqui­ empieza la DEFINICION del COMANDO \plothpDsol
+% #1 optional parameter which defines the domain
+\newcommand{\plothpDsol}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerTwoDigit{\endIter}{\endIterformated}
+  \FormatIntegerThreeDigit{\endIter}{\endIterformatedthree}
+  %
+  \begin{subfigure}{\subplotwidth}
+    \plothpsolsol{#2/hp/order_1}{\endIterformated}{Direct_solution_real}{#1}%
+  \end{subfigure}
+}%
+
+%Aqui­ empieza la DEFINICION del COMANDO \plothpAsol
+% #1 optional parameter which defines the domain
+\newcommand{\plothpAsol}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerTwoDigit{\endIter}{\endIterformated}
+  \FormatIntegerThreeDigit{\endIter}{\endIterformatedthree}
+  %
+  \plothpsolsol{#2/hp/order_1}{\endIterformated}{Adjoint_solution_real}{#1}%
+}%
+
+%Aqui­ empieza la DEFINICION del COMANDO \plothpSource
+% #1 optional parameter which defines the domain
+\newcommand{\plothpSource}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerTwoDigit{\endIter}{\endIterformated}
+  \FormatIntegerThreeDigit{\endIter}{\endIterformatedthree}
+  %
+  \plothpsourcesource{#2/hp/order_1}{\endIterformated}{Source_real}{#1}%
+}%
+
+
+%Aqui empieza la DEFINICION del COMANDO \plothpDmat
+\newcommand{\plothpDmat}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerTwoDigit{\endIter}{\endIterformated}
+  \FormatIntegerThreeDigit{\endIter}{\endIterformatedthree}
+  %
+  \plothpsolsol{#2/hp/order_1}{\endIterformated}{materials}{#1}%
+}%
+%%%%%%%%%%%%%%%%%%%%%%%%%% \plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%.   \captionifthenproblem{#2}
+
+%%%%%%%%%%%%%%%% AquÃ­ EMPIEZA la DEFINICION del COMANDO \plothpsolGOA el cual tiene 2 argumentos %%%%%%%%%%
+\newcommand{\plothpsolGOA}[4]{%
+  \renewcommand{\DataPath}{\FigurePath/#1}
+  \pgfplotsset{%
+    colormap={paraview}{rgb=(0.231373, 0.298039, 0.752941) rgb=(0.865003, 0.865003, 0.865003) rgb=(0.705882, 0.0156863, 0.14902)}%
+  }%
+  \pgfplotsset{colormap name={paraview}}%
+
+  \getelemdbl{\DataPath/#3_#2_ColorbarValues.dat}{min_value}{0}{\scaleMin}
+  \getelemdbl{\DataPath/#3_#2_ColorbarValues.dat}{max_value}{0}{\scaleMax}
+  \getelemdbl{\DataPath/#3_#2_ColorbarValues.dat}{mean_value}{0}{\scaleMean}
+
+  \tikzset{/tikz/external/export next=false}
+
+  \IfSubStr{#4}{unitsquare}
+  {   	\begin{tikzpicture}
+      \begin{axis}[name=master,
+          width=\textwidth,height=\textwidth,
+          enlargelimits=false,
+          xlabel=$x$,
+          ylabel=$y$,
+          xlabel near ticks,
+          ylabel near ticks,
+          colorbar horizontal,
+          colorbar style={%
+              xtick={\scaleMin,\scaleMean,\scaleMax},
+              title={Value of the solution},
+              at={(master.above north west)},anchor=south west,
+              yshift=2pt,
+              title style={
+                  yshift=5pt%yshift=2pt
+                },
+              yshift=0.2em,
+              xticklabel pos=upper,
+            },
+          %point meta min=\minp,
+          point meta min=\scaleMin,
+          point meta max=\scaleMax,
+        ]
+        %
+        \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/coarse_mesh_fine_#2_#3.png};
+
+      \end{axis}
+    \end{tikzpicture}}
+  {\begin{tikzpicture}
+      \begin{axis}[name=master,
+          width=\textwidth,height=\textwidth,
+          enlargelimits=false,
+          %xlabel=$x$,
+          %ylabel=$y$,
+          %xlabel near ticks,
+          %ylabel near ticks,
+          %axis line style={draw=none},
+          %tick style={draw=none},
+          hide axis,
+          xticklabels={},
+          yticklabels={},
+          colorbar horizontal,
+          colorbar style={%
+              xtick={\scaleMin,\scaleMean,\scaleMax},
+              title={Value of the solution},
+              at={(master.above north west)},anchor=south west,
+              yshift=10pt,
+              title style={
+                  yshift=5pt%yshift=2pt
+                },
+              yshift=0.2em,
+              xticklabel pos=upper,
+            },
+          %point meta min=\minp,
+          point meta min=\scaleMin,
+          point meta max=\scaleMax,
+        ]
+        %
+        \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/coarse_mesh_fine_#2_#3.png};
+
+      \end{axis}
+    \end{tikzpicture}}%
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%% Aqui� TERMINA la DEFINICION de \plothpsolGOA %%%%%%%%%%%%%%%
+
+% DEFINICION de \plothpsolsol
+\newcommand{\plothpsolsol}[4]{%
+  \renewcommand{\DataPath}{\FigurePath/#1}
+
+  \IfSubStr{#4}{unitsquare}
+  {   	\pgfplotsset{%
+      colormap={paraview}{rgb=(0.231373, 0.298039, 0.752941) rgb=(0.865003, 0.865003, 0.865003) rgb=(0.705882, 0.0156863, 0.14902)}%
+    }%
+    \pgfplotsset{colormap name={paraview}}%
+
+    \getelemdbl{\DataPath/#3_#2_ColorbarValues.dat}{min_value}{0}{\scaleMin}
+    \getelemdbl{\DataPath/#3_#2_ColorbarValues.dat}{max_value}{0}{\scaleMax}
+    \getelemdbl{\DataPath/#3_#2_ColorbarValues.dat}{mean_value}{0}{\scaleMean}
+
+    \tikzset{/tikz/external/export next=false}
+    \begin{tikzpicture}
+      \begin{axis}[name=master,
+          width=\textwidth,height=\textwidth,
+          % width=\textwidth*0.5,height=\textwidth*0.5,
+          enlargelimits=false,
+          xlabel=$x$,
+          ylabel=$y$,
+          xlabel near ticks,
+          ylabel near ticks,
+          colorbar horizontal,
+          colorbar style={%
+              xtick={\scaleMin,\scaleMean,\scaleMax},
+              title={Value of the solution},
+              at={(master.above north west)},anchor=south west,
+              yshift=2pt,
+              title style={
+                  yshift=5pt%yshift=2pt
+                },
+              yshift=0.2em,
+              xticklabel pos=upper,
+            },
+          %point meta min=\minp,
+          point meta min=\scaleMin,
+          point meta max=\scaleMax,
+        ]
+        %
+        \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/coarse_mesh_fine_#2_#3.png};
+      \end{axis}
+    \end{tikzpicture}}
+  {%else
+    \pgfplotsset{%
+      colormap={paraview}{rgb=(0.05, 1.0, 1.0) rgb=(1.0, 0.0, 0.0) rgb=(0.0, 1.0, 0.0) rgb=(0.0, 0.0, 1.0)}%
+    }
+    %
+    \pgfplotsset{colormap name={paraview}}%
+    \findmax{\DataPath/#3.txt}{uno}{\matuno}
+    \findmax{\DataPath/#3.txt}{dos}{\matdos}
+    \findmax{\DataPath/#3.txt}{tres}{\mattres}
+    \findmax{\DataPath/#3.txt}{cuatro}{\matcuatro}
+
+    \tikzset{/tikz/external/export next=false}
+    \begin{tikzpicture}
+      \begin{axis}[name=master,
+          width=\textwidth*0.5,height=\textwidth*0.5,
+          enlargelimits=false,
+          %xlabel=$x$,
+          %ylabel=$y$,
+          %xlabel near ticks,
+          %ylabel near ticks,
+          axis line style={draw=none},
+          tick style={draw=none},
+          xticklabels={},
+          yticklabels={},
+          colorbar horizontal,
+          colorbar sampled,
+          colormap access=piecewise constant,
+          colorbar style={
+              samples=4,
+              xtick=data,%={0,1,2,3},
+              xticklabels={0.01,1,10,1000},
+              xticklabel style={xshift=\textwidth*0.5/10},
+              title={Diffusivity of the materials},
+              at={(master.above north west)},anchor=south west,
+              yshift=5pt,
+              title style={
+                  yshift=5pt%yshift=2pt
+                },
+              yshift=0.2em,
+              xticklabel pos=upper,
+            },
+          %point meta min=\minp,
+          % point meta min=\matuno,
+          % point meta max=\matcuatro,
+        ]
+        %
+        \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/#3_#2.png};
+
+      \end{axis}
+    \end{tikzpicture}}%
+}
+
+% TERMINA la DEFINICION de \plothpsolsol
+
+% DEFINICION de \plothpsourcesource
+\newcommand{\plothpsourcesource}[4]{%
+  \renewcommand{\DataPath}{\FigurePath/#1}
+
+  \pgfplotsset{colormap={paraview}{rgb=(0.231373, 0.298039, 0.752941) rgb=(0.865003, 0.865003, 0.865003) rgb=(0.705882, 0.0156863, 0.14902)}}
+  \pgfplotsset{colormap name={paraview}}
+
+  \getelemdbl{\DataPath/#3_ColorbarValues.dat}{min_value}{0}{\scaleMin}
+  \getelemdbl{\DataPath/#3_ColorbarValues.dat}{max_value}{0}{\scaleMax}
+  \getelemdbl{\DataPath/#3_ColorbarValues.dat}{mean_value}{0}{\scaleMean}
+
+  \tikzset{/tikz/external/export next=false}
+  \begin{tikzpicture}
+    \begin{axis}[name=master,
+        width=\textwidth*0.6,height=\textwidth*0.6,
+        enlargelimits=false,
+        xlabel=$x$,
+        ylabel=$y$,
+        xlabel near ticks,
+        ylabel near ticks,
+        colorbar horizontal,
+        colorbar style={%
+            xtick={\scaleMin,\scaleMean,\scaleMax},
+            title={Value of the source},
+            at={(master.above north west)},anchor=south west,
+            yshift=2pt,
+            title style={
+                yshift=5pt%yshift=2pt
+              },
+            yshift=0.2em,
+            xticklabel pos=upper,
+          },
+        %point meta min=\minp,
+        point meta min=\scaleMin,
+        point meta max=\scaleMax,
+      ]
+      %
+      \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/coarse_mesh_fine_#2_#3.png};
+    \end{axis}
+  \end{tikzpicture}
+}
+
+% TERMINA la DEFINICION de \plothpsource
+
+%%%%%%%%%%%%%%%% AquÃ­ EMPIEZA la DEFINICION del COMANDO \PLOTHPOneMESH el cual tiene 2 argumentos %%%%%%%%%%
+\newcommand{\plothpOnemesh}[3]{
+
+  \renewcommand{\DataPath}{\FigurePath/#1}
+  \pgfplotsset{colormap/YlOrRd}
+
+  %\getelem{\DataPath/outputs.txt}{iter}{#2}{\iter}
+  \findmax{\DataPath/coarse_mesh_#2.txt}{order}{\maxp}
+  % \findmin{\DataPath/coarse_mesh_00.txt}{order}{\minp}
+
+  \begin{tikzpicture}
+    \begin{axis}[name=master,
+        width=\textwidth,height=\plotheight,
+        enlargelimits=false,
+        enlarge y limits=true,
+        enlarge y limits=0.2,
+        %point meta min=\minp,
+        % point meta min=0,
+        % point meta max=\maxp,
+        xlabel=$x$,
+        ylabel=$u(x)$ ,
+      ]
+
+      \addplot[line width=1pt,opacity=0.2] table[x=X,
+          y=My_beautiful_solution_real] {\DataPath/sol#2.txt};
+
+      \addplot[solid, line width=1pt, color=black] table[x=X,
+          y=My_beautiful_exact_solution_real] {\DataPath/exact_sol.txt};
+    \end{axis}
+
+    \begin{axis}[
+        colormap access=const,
+        colorbar horizontal,
+        colorbar sampled,
+        colorbar style={ samples=\maxp+1,
+            xtick={0.5,1.5,...,\maxp},
+            xticklabels={1,2,...,\maxp},
+            at={(master.above north west)},anchor=south west,
+            title=Approximation order $p$,
+            xticklabel pos=upper,
+            yshift=1em,
+            xtick style={draw=none},
+            title style={yshift=2pt},
+          },
+        width=\textwidth,%
+        %at={(master.above north west)},anchor=south west,
+        at={(master.south west)},%anchor=south west,
+        enlargelimits=false,
+        %enlarge x limits=true,
+        axis lines=none,
+        height=2cm,%\pgfkeysvalueof{/pgfplots/colorbar/width},
+        ticks=none,
+        %point meta min=\minp,
+        point meta min=0,
+        point meta max=\maxp,
+        title=Mesh,
+        name=coarse_mesh,
+        title style={left,at={(0,0)}, align=right},
+      ]
+      \addplot [patch, patch type=rectangle, point meta=explicit,line
+        width=0.6pt, faceted color= black]  table[meta expr=\thisrow{order}-0.5]
+        {\DataPath/coarse_mesh_#2.txt};%\mesh};
+
+    \end{axis}
+
+  \end{tikzpicture}
+
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%% AquÃ­ TERMINA la DEFINICION del COMANDO  %%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%  AquÃ­ empieza la DEFINICION del COMANDO \plothpone
+% \plothpone tiene 2 argumentos, si no se especifica un argumento queda un espacio en blanco por default.
+% Llamado a la funciÃ³n: \plothpOne{Regular1D}
+\newcommand{\plothpOne}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerTwoDigit{\endIter}{\endIterformated}
+  %
+  \begin{subfigure}{\subplotwidth}
+    \plothpOnemesh{#2/hp/order_1}{\endIterformated}{}%
+    \subcaption{\captionifthenproblem{#2} problem.}
+  \end{subfigure}
+  \begin{subfigure}{\subplotwidth}
+    \errorplotlog[#1]{#2}{Error}
+    \subcaption{Evolution of the relative error in \captionifthenlegend{#2}.}
+  \end{subfigure}
+}%
+%%%%%%%%%%%%%%%%%%%%%%%%%% \plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%AquÃ­ empieza la DEFINICION del COMANDO \plothpDupper
+% #1 optional parameter which defines the domain
+\newcommand{\plothpDupper}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1/#1}
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+
+  \FormatIntegerTwoDigit{\endIter}{\endIterformated}
+  \FormatIntegerThreeDigit{\endIter}{\endIterformatedthree}
+  %
+  %\begin{figure}
+  \plothpupper{#2/hp/order_1/#1}%
+  % \subcaption{Upper bounds.}
+  % \label{fig:#2_upper}
+  %\end{figure}
+
+
+}%
+%%%%%%%%%%%%%%%%%%%%%%%%%% \plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%% AquÃ­ EMPIEZA la DEFINICION del COMANDO \plothpupper %%%%%%%%%%%%%%%
+\newcommand{\plothpupper}[1]{
+  \renewcommand{\DataPath}{\FigurePath/#1}
+
+  \begin{tikzpicture}
+    \begin{axis}[name=master,
+        width=\textwidth*0.5,height=\textwidth*0.5,
+        enlargelimits=false,
+        xlabel={Number of DoFs, $N$ (log scale)},
+        %x dir=reverse,
+        ylabel=Error,
+        ymode=log,
+        xmode=log,
+        %ymin=1e-2,
+        %ymax=3e1,
+        %xmax=5e4,
+        %xmin=5e0,
+        %yticklabel pos=right,
+        ylabel near ticks,
+        xlabel near ticks,
+        enlargelimits=false,
+        legend style={draw=black,fill=white,legend cell align=left, at={(0.5,1.01)}, anchor=south},
+        legend columns=-1
+        %legend columns=4,
+        %transpose legend,
+        %legend columns=10,
+        %reverse legend,
+      ]
+
+      \addplot+[] table[x=dofs,y=l_qoi] {\DataPath/bounds.txt} ;
+      \addlegendentry{l QoI}
+
+      \addplot+[] table[x=dofs,y=upper_bound_classic_dabs] {\DataPath/bounds.txt} ;
+      \addlegendentry{double abs}
+
+      \addplot+[] table[x=dofs,y=upper_bound_classic] {\DataPath/bounds.txt} ;
+      \addlegendentry{SPD $(+k^2)$}
+
+      \addplot+[] table[x=dofs,y=alternative_upper_bound] {\DataPath/bounds.txt} ;
+      \addlegendentry{$\tilde{\varepsilon}$}
+
+    \end{axis}
+  \end{tikzpicture}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%% AquÃ­ TERMINA la DEFINICION del COMANDO \plothpupper %%%%%%%%%%%%%%%
+
+%% AquÃ­ empieza la DEFINICION del COMANDO \plothplevels. Un llamado es por ejemplo \plothplevels[hp]{Helm3DGOA}.
+\newcommand{\plothplevels}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}%\PbName/hp
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+  %\findmin{\DataPath/outputs.txt}{iter}{\initIter} %\plothplevel
+
+  \FormatIntegerThreeDigit{\endIter}{\endIterformated}
+  \foreach \idim in {x,y,z}{
+      \begin{subfigure}{\subplotwidth}
+        \plothplevel{#2/hp/order_1}{\endIterformated}{\idim}
+        \caption{Final $hp$-adapted mesh with polynomial orders in the $\idim$-direction.}
+        \label{fig:#2_\idim}
+      \end{subfigure}
+    }
+
+  %\pgfmathparse{subtract(\endIter,0)}
+  %\pgfmathtruncatemacro\endIterIndex{\pgfmathresult}
+
+  %\getelem{\DataPath/outputs.txt}{nr_dof}{\endIter}{\nrdofHpEnd}
+  %\getelemdbl{\DataPath/outputs.txt}{Error_H1}{\endIter}{\errorHpEnd}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% \subcaption{\captionifthenproblem{#2} problem. Evolution of the error in \captionifthenlegend{#2}.}
+%: \captionifthenproblem
+\newcommand{\captionifthenproblem}[1]{%
+\ifthenelse{\equal{#1}{Regular1D}}{Regular solution}{%
+\ifthenelse{\equal{#1}{CrossGOA}}{$e_{\textrm{rel}}^{\textrm{QoI}}$}{%
+\ifthenelse{\equal{#1}{intBL}}{$e_{\textrm{rel}}^{\textrm{energy}}$}{%
+\ifthenelse{\equal{#1}{intBL}}{boundary layer}{%
+\ifthenelse{\equal{#1}{ConvDiff2DGOA}}{$e_{\textrm{rel}}^{\textrm{QoI}}$}{%
+\ifthenelse{\equal{#1}{Helm2DGOA}}{$e_{\textrm{rel}}^{\textrm{QoI}}$}{%
+\ifthenelse{\equal{#1}{Helm2DGOANon}}{$\tilde{e}_{\textrm{rel}}^{\textrm{\, energy}}$}{%
+\ifthenelse{\equal{#1}{Helm3DGOA}}{$e_{\textrm{rel}}^{\textrm{QoI}}$}{%
+\ifthenelse{\equal{#1}{Helm3DGOANon}}{$\tilde{e}_{\textrm{rel}}^{\textrm{\, energy}}$}{%
+\ifthenelse{\equal{#1}{ConvDiff2DGOA-4}}{$e_{\textrm{rel}}^{\textrm{QoI}}$}{%
+\ifthenelse{\equal{#1}{ConvDiff2DGOAtheta}}{$e_{\textrm{rel}}^{\textrm{QoI}}$}{%
+\ifthenelse{\equal{#1}{ConvDiff2DGOANon}}{$\tilde{e}_{\textrm{rel}}^{\textrm{\, energy}}$}{%
+\ifthenelse{\equal{#1}{atancircle2D}}{Shock}{prout!}%
+}}}}}}}}}}}}%
+}
+%: \captionifthenlegend{#2}
+\newcommand{\captionifthenlegend}[1]{%
+  \ifthenelse{\equal{#1}{Regular1D}}{$H^1$ semi-norm}{%
+    \ifthenelse{\equal{#1}{intBL}}{the norm $\norm{\cdot}_{\H}$}{%
+      \ifthenelse{\equal{#1}{ConvDiff2DGOANon}}{$e_{\textrm{rel}}^{\textrm{QoI}}$}{%
+        \ifthenelse{\equal{#1}{CrossGOA}}{the QoI}{%
+          \ifthenelse{\equal{#1}{lap2DLshapeGOA}}{the QoI}{%
+            \ifthenelse{\equal{#1}{ConvDiff2DGOA}}{the QoI}{%
+              \ifthenelse{\equal{#1}{Helm2DGOA}}{the QoI}{%
+                \ifthenelse{\equal{#1}{Helm2DLshapeGOA}}{the QoI}{%
+                  \ifthenelse{\equal{#1}{Helm2DLshapeGOANon}}{the QoI}{%
+                    \ifthenelse{\equal{#1}{Helm2DGOANon}}{$e_{\textrm{rel}}^{\textrm{QoI}}$}{%
+                      \ifthenelse{\equal{#1}{Helm2DGOAalternative5}}{the QoI}{%
+                        \ifthenelse{\equal{#1}{Helm2DGOAspd5}}{the QoI}{%
+                          \ifthenelse{\equal{#1}{expBL}}{$H^1$ semi-norm}{%
+                            \ifthenelse{\equal{#1}{Helm2D}}{the norm $\norm{\cdot}_{\H}$}{%
+                              \ifthenelse{\equal{#1}{singularsquare2D}}{$H^1$ semi-norm}{%
+                                \ifthenelse{\equal{#1}{ConvDiff2Dvcvd}}{$H^1$ semi-norm}{%
+                                  \ifthenelse{\equal{#1}{singular2D}}{$H^1$ semi-norm}{%
+                                    \ifthenelse{\equal{#1}{atan2D}}{$H^1$ semi-norm}{%
+                                      \ifthenelse{\equal{#1}{atancircle2D}}{$H^1$ semi-norm}{prout!}%
+                                    }}}}}}}}}}}}}}}}}}%
+}
+
+%: elemental routines
+
+\newcommand{\FormatIntegerTwoDigit}[2]{
+  \pgfmathsetbasenumberlength{2}
+  \pgfmathbasetodec#2{#1}{10}
+}
+
+\newcommand{\FormatIntegerThreeDigit}[2]{ %AquÃ­ INICIA la DEFINICION del COMANDO \FormatIntegerThreeDigit
+  \pgfmathsetbasenumberlength{3}
+  \pgfmathbasetodec#2{#1}{10}
+}
+
+
+\newcommand{\getelem}[4]{
+  \pgfplotstablegetelem{#3}{#2}\of{#1}%
+  \pgfmathtruncatemacro#4{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+}
+
+
+\newcommand{\getelemdbl}[4]{
+  \pgfplotstablegetelem{#3}{#2}\of{#1}%
+  \pgfmathsetmacro#4{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+}
+
+%   \pgfplotstableread{\datatable}{#1}
+%   \pgfplotstablecreatecol[
+%     create col/expr={%
+%         \pgfplotstablerow
+%       }]{rownumber}\datatable
+%   \pgfplotstablesort[sort key={#2},sort cmp={float >}]{\sorted}{\datatable}%
+%   \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+%   \pgfmathtruncatemacro#3{\pgfplotsretval}
+%   \pgfplotstableclear{\datatable}
+%   %
+% }
+
+% \newcommand{\findmin}[3]{
+%   \pgfplotstablevertcat{\datatable}{#1}
+%   \pgfplotstablecreatecol[
+%     create col/expr={%
+%         \pgfplotstablerow
+%       }]{rownumber}\datatable
+%   \pgfplotstablesort[sort key={#2},sort cmp={float <}]{\sorted}{\datatable}%
+%   \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+%   \pgfmathtruncatemacro#3{\pgfplotsretval}
+%   \pgfplotstableclear{\datatable}
+%   %
+% }
+
+% \newcommand{\findmaxDbl}[3]{
+%   \pgfplotstablevertcat{\datatable}{#1}
+%   \pgfplotstablecreatecol[
+%     create col/expr={%
+%         \pgfplotstablerow
+%       }]{rownumber}\datatable
+%   \pgfplotstablesort[sort key={#2},sort cmp={float >}]{\sorted}{\datatable}%
+%   \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+%   \pgfmathsetmacro#3{\pgfplotsretval}
+%   \pgfplotstableclear{\datatable}
+%   %
+% }
+
+
+\newcommand{\findmax}[3]{
+  \pgfplotstableread{#1}{\datatable}
+  % \pgfplotstablevertcat{\datatable}{#1}
+  % \pgfplotstablecreatecol[
+  % create col/expr={%
+  % \pgfplotstablerow
+  % }]{rownumber}\datatable
+  \pgfplotstablesort[sort key={#2},sort cmp={float >}]{\sorted}{\datatable}%
+  \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+  \pgfmathtruncatemacro#3{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+  %
+}
+
+\newcommand{\findmin}[3]{
+  \pgfplotstableread{#1}{\datatable}
+  % \pgfplotstablevertcat{\datatable}{#1}
+  % \pgfplotstablecreatecol[
+  %   create col/expr={%
+  % \pgfplotstablerow
+  % }]{rownumber}\datatable
+  \pgfplotstablesort[sort key={#2},sort cmp={float <}]{\sorted}{\datatable}%
+  \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+  \pgfmathtruncatemacro#3{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+  %
+}
+
+\newcommand{\findmaxDbl}[3]{
+  % \pgfplotstablevertcat{\datatable}{#1}
+  \pgfplotstableread{#1}{\datatable}
+  % \pgfplotstablecreatecol[
+  % create col/expr={%
+  % \pgfplotstablerow
+  % }]{rownumber}\datatable
+  \pgfplotstablesort[sort key={#2},sort cmp={float >}]{\sorted}{\datatable}%
+  \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+  \pgfmathsetmacro#3{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+  %
+}
+
+
+\newcommand{\lastelement}[3]{
+  \pgfplotstableread{#1}{\mytable}
+  \pgfplotstablegetrowsof{\mytable} %Determine no. of rows
+  \pgfmathtruncatemacro{\rows}{\pgfplotsretval}
+  \pgfmathtruncatemacro{\lastrow}{\rows-1}
+  \pgfplotstablegetelem{\lastrow}{#2}\of{\mytable}
+  \pgfmathsetmacro#3{\pgfplotsretval}
+}
+
+
+\newcommand{\findminDbl}[3]{
+  \pgfplotstablevertcat{\datatable}{#1}
+  \pgfplotstablecreatecol[
+    create col/expr={%
+        \pgfplotstablerow
+      }]{rownumber}\datatable
+  \pgfplotstablesort[sort key={#2},sort cmp={float <}]{\sorted}{\datatable}%
+  \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+  \pgfmathsetmacro#3{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+  %
+}
+
+
+\pgfplotsset{
+  log x ticks with fixed point/.style={
+      xticklabel={
+          \pgfkeys{/pgf/fpu=true}
+          \pgfmathparse{exp(\tick)}%
+          \pgfmathprintnumber[fixed relative, precision=3]{\pgfmathresult}
+          \pgfkeys{/pgf/fpu=false}
+        }
+    },
+  log y ticks with fixed point/.style={
+      yticklabel={
+          \pgfkeys{/pgf/fpu=true}
+          \pgfmathparse{exp(\tick)}%
+          \pgfmathprintnumber[fixed relative, precision=3]{\pgfmathresult}
+          \pgfkeys{/pgf/fpu=false}
+        }
+    }
+}
+
+
+
+\pgfplotscreateplotcyclelist{custom list style}{%
+  color=red, solid, every mark/.append style={solid}, mark=*\\%
+  color=blue, loosely dotted, every mark/.append style={solid}, mark=triangle*\\%
+  color=black!50!green,dotted, every mark/.append style={solid}, mark=square*\\%
+  color=black, dashed, every mark/.append style={solid},mark=diamond*\\%
+  color=black!50!red, densely dotted, every mark/.append style={solid}, mark=otimes*\\%
+  color=black!50!yellow, loosely dashed, every mark/.append style={solid},mark=*\\%
+  color=black!50!blue,densely dashed, every mark/.append style={solid},mark=square*\\%
+  color=black!50!magenta,dashdotted, every mark/.append style={solid},mark=otimes*\\%
+  color=black!50!orange,dashdotdotted, every mark/.append style={solid},mark=star\\%
+  color=black!50!cyan, densely dashdotted,every mark/.append style={solid},mark=diamond*\\%
+}
+
+\pgfplotsset{%
+  every axis plot/.append style= {line width=2pt},
+  cycle list name=custom list style,
+  %    log x ticks with fixed point,
+  %    legend style={at={(0.5,1.03)},anchor=south},
+  %    legend columns=3,
+  %    legend pos= outer north east,
+  %    legend cell align=left,
+}

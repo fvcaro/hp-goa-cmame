@@ -1,0 +1,63 @@
+\documentclass[3p]{elsarticle}
+\journal{Computer Methods in Applied Mechanics and Engineering}
+\bibliographystyle{elsarticle-num}
+\input{preambule.tex}
+\input{plot_fv.tex}
+
+\begin{document}
+%: title page
+\begin{frontmatter}
+
+  \title{A Painless Multi-level Automatic Goal-Oriented $hp$-Adaptive Coarsening Strategy for Elliptic and non-Elliptic Problems}%\tnoteref{t1}}
+
+  \tnotetext[t1]{
+David Pardo has received funding from: the European Union's Horizon 2020 research and innovation program under the Marie Sklodowska-Curie grant agreement No 777778 (MATHROCKS); the European Regional Development Fund (ERDF) through the Interreg V-A Spain-France-Andorra program POCTEFA 2014-2020 Project PIXIL (EFA362/19); the Spanish Ministry of Science and Innovation projects with references PID2019-108111RB-I00 (FEDER/AEI) and PDC2021-121093-I00 (AEI/Next Generation EU), the “BCAM Severo Ochoa” accreditation of excellence (SEV-2017-0718); and the Basque Government through the BERC 2022-2025 program, the three Elkartek projects 3KIA (KK-2020/00049), EXPERTIA (KK-2021/00048), and SIGZE (KK-2021/00095), and the Consolidated Research Group MATHMODE (IT1294-19) given by the Department of Education. Vincent Darrigrand is supported by the EU under the Horizon 2020 Project Energy oriented Center of Excellence: toward exascale for energy (EoCoE-II), Project ID: 824158. Julen Alvarez-Aramberri is supported by the European Union-Next GenerationEU.\\
+ We thank Luis E. García-Castillo for his technical advice and his insightful comments.}
+  
+  
+  
+
+  \author[1,2]{Felipe V. Caro\corref{mycorrespondingauthor}}
+  \ead{fcaro001@ikasle.ehu.eus}
+  \cortext[mycorrespondingauthor]{Corresponding author}
+
+  \author[4]{Vincent Darrigrand}
+  \ead{vincent.darrigrand@gmail.com}
+
+  \author[2]{Julen Alvarez-Aramberri}
+  \ead{julen.alvarez@ehu.eus}
+
+  \author[2]{Elisabete Alberdi}
+  \ead{elisabete.alberdi@ehu.eus}
+
+  \author[2,1,3]{David Pardo}
+  \ead{dzubiaur@gmail.com}
+
+  \address[1]{Basque Center for Applied Mathematics (BCAM), Bilbao, Spain}
+  \address[2]{University of the Basque Country (UPV-EHU), Leioa, Spain}
+  \address[3]{Ikerbasque, Bilbao, Spain}
+  \address[4]{CNRS-IRIT, Toulouse, France}
+
+  \begin{abstract}
+    \input{Sections/Abstract.tex}
+  \end{abstract}
+
+  \begin{keyword}
+    Goal-oriented adaptivity \sep $hp$-adaptivity \sep Finite element method \sep Unrefinements \sep non-Elliptic problems
+  \end{keyword}
+
+\end{frontmatter}
+
+\input{Sections/Introduction.tex}
+\input{Sections/Data-Structure}
+\input{Sections/Indicators}
+% \input{Sections/GO-adapt}
+\input{Sections/NumericalResults}
+\input{Sections/Conclusions}
+%\bibliography{../../bibliography}
+%\bibliographystyle{apalike}
+\bibliography{bibliography}
+%\nocite{*}
+
+
+\end{document}

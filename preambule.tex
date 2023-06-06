@@ -1,0 +1,265 @@
+\usepackage[main=english]{babel}
+\usepackage{amsmath,amsthm,mathrsfs,amssymb,amsfonts,dsfont,nicefrac,stmaryrd,yhmath,mathscinet}
+\usepackage{mathtools}
+%\usepackage{accents}
+%\mathtoolsset{showonlyrefs=true}
+\usepackage{pgfplotstable}
+\usepackage{pgfplots}
+\usepackage{caption}
+\usepackage{tikz}
+%\pgfplotsset{compat=1.15}
+%\pgfplotsset{compat=1.13}
+\pgfplotsset{compat=newest}
+\usepackage{pgfmath,pgffor}
+%\usepackage{ifthen}
+\usepackage{xifthen}
+\usepackage{xstring}
+\usepackage{calc}
+\usepackage{excludeonly}
+\usepackage{multirow}
+\usepackage{floatrow}
+\floatplacement{figure}{!htbp}
+%\usepackage[skip=1pt]{subcaption} %Nota: si se habilita, los captions de las Figuras quedaran más cerca de las Figuras.
+\usepackage{subcaption}
+\usepackage{multicol}
+\usepackage[inline,shortlabels]{enumitem}
+%\usepackage{ulem}
+\usepackage{stackengine}
+\usepackage{csquotes}
+\usepackage{dirtytalk}
+%\usepackage[text={16cm,25cm},centering]{geometry}
+\usepackage[colorinlistoftodos]{todonotes}
+
+\usepackage[debug, hidelinks,hypertexnames=false]{hyperref} % make sure to load it last
+\usepackage{cleveref}
+%\usepackage{autonum} %Nota: si se habilita ninguna ecuación aparecerá enumerada
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[ruled,vlined]{algorithm2e}
+
+\makeatletter
+\renewcommand{\todo}[2][]{\tikzexternaldisable\@todo[#1]{#2}\tikzexternalenable}
+\makeatother
+
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{foreground}
+\pgfsetlayers{background,main,foreground}   %% some additional layers for demo
+
+\usetikzlibrary{positioning,patterns,shapes}
+\usepgfplotslibrary{external}
+\usetikzlibrary{decorations.markings,intersections,calc}
+\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{fpu}
+\usepgfplotslibrary{colormaps}
+\usepgfplotslibrary{colorbrewer}
+\usepgfplotslibrary{polar}
+\usepgfplotslibrary{ternary}
+\usepgfplotslibrary{smithchart}
+\usepgfplotslibrary{patchplots}
+%
+\usetikzlibrary{fit}
+\makeatletter
+\tikzset{
+  fitting node/.style={
+      inner sep=0pt,
+      fill=none,
+      draw=none,
+      reset transform,
+      fit={(\pgf@pathminx,\pgf@pathminy) (\pgf@pathmaxx,\pgf@pathmaxy)}
+    },
+  reset transform/.code={\pgftransformreset}
+}
+
+\newcommand{\Cross}{$\mathbin{\tikz [x=1ex,y=1ex,line width=.1ex, red] \draw (0,0) -- (1,1) (0,1) -- (1,0);}$}%
+
+
+\makeatother
+
+\makeatletter
+\def\underbrace#1{\@ifnextchar_{\tikz@@underbrace{ \displaystyle #1}}{\tikz@@underbrace{#1}_{}}}
+\def\tikz@@underbrace#1_#2{\tikz[baseline=(a.base)] {\node (a) {\(#1\)}; \draw[line cap=round,decorate,decoration={brace,amplitude=5pt}] (a.south east) -- node[below,inner sep=7pt] {\(\scriptstyle #2\)} (a.south west);}}
+\makeatother
+
+\tikzexternalize[
+  mode= list and make,
+  prefix=External_TikZ/
+]
+%\newcommand{\datafolder}{}
+\tikzset{external/only named=true}
+
+\usepackage{framed} %for the left bar
+
+
+\renewenvironment{leftbar}[1][\hsize]
+{%
+  \def\FrameCommand
+  {%
+    { \vrule width 2pt}%
+    \hspace{5pt}%must no space.
+    \fboxsep=\FrameSep%
+  }%
+  \MakeFramed{\hsize#1\advance\hsize-\width\FrameRestore}%
+}
+{\endMakeFramed}
+
+\newenvironment{var_for}[1]
+{%
+  \begin{leftbar}[0.8\textwidth]
+    \noindent #1}%
+    {\end{leftbar}}%
+%: definition commands
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+\newtheorem*{expl}{Example}
+
+\newtheoremstyle{noparens}%
+{}{}%
+{}{}%
+{\bfseries}%
+{:}%
+{ }%
+{\thmnote{#3}}
+%  {\thmname{#1}:~\thmnote{#3}}
+
+
+\theoremstyle{noparens}
+\newtheorem{defn}{Definition}
+
+%\theoremstyle{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\K}{\mathbb{K}}
+\newcommand{\Y}{\mathbb{Y}}
+
+
+\renewcommand{\H}{\mathbb{H}}
+\newcommand{\V}{\mathbb{V}}
+
+\newcommand{\calB}{\mathcal{B}}
+\newcommand{\calD}{\mathcal{D}}
+\newcommand{\calC}{\mathcal{C}}
+\newcommand{\calP}{\mathcal{P}}
+\newcommand{\calS}{\mathcal{S}}
+\newcommand{\calL}{\mathcal{L}}
+\newcommand{\calT}{\mathcal{T}}
+\newcommand{\calR}{\mathcal{R}}
+\newcommand{\calU}{\mathcal{U}}
+\newcommand{\calF}{\mathcal{F}}
+\newcommand{\calE}{\mathcal{E}}
+\newcommand{\calI}{\mathcal{I}}
+\newcommand{\calO}{\mathcal{O}}
+\newcommand{\lvl}{\calL}
+
+\newcommand{\frakR}{\mathfrak{R}}
+
+\newcommand{\tb}{\tilde{b}}
+\newcommand{\dis}{\displaystyle}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\norme}[1]{\left\|#1\right\|}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\normOP}[1]{\left\vvvert#1\right\vvvert} %needs mathabx package
+
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\tilde}{\widetilde}
+\newcommand{\grad}{\nabla}
+\newcommand{\scalaire}[2]{\left<#1\,,#2\right>}
+\newcommand{\scalar}[2]{\left<#1\,,#2\right>}
+
+%\DeclareMathOperator{\div}{div}
+\DeclareMathOperator{\atan}{atan}
+\DeclareMathOperator{\atanB}{atan2}
+
+\DeclareMathOperator*{\lOngrightarrow}{\longrightarrow}
+\DeclareMathOperator*{\argmin}{\textrm{arg min}}
+
+\newcommand{\fonction}[5]{\begin{array}[t]{l|ccl}
+    #1 \colon & #2 & \longrightarrow & #3 \\
+              & #4 & \longmapsto     & #5
+  \end{array}}
+\newcommand{\fonc}[3]{#1 \colon #2 \longrightarrow #3}
+
+
+\newcommand{\dof}[1]{\mathrm{Ind}_{\mathrm{basis}}(#1)}
+\newcommand{\rmdof}[1]{\ifthenelse{\equal{#1}{}}{\mathrm{R}\mathrm{m}_\mathrm{dof}}{\mathrm{R}\mathrm{m}_\mathrm{dof}(#1)}}
+
+\newcommand{\rmbasis}[1][]{\ifthenelse{\equal{#1}{}}{\mathrm{R}\mathrm{m}_\mathrm{basis}}{\mathrm{R}\mathrm{m}_\mathrm{basis}(#1)}}
+
+%\newcommand{\rmbasis}[1][]{\mathrm{R}\mathrm{m}_\mathrm{basis}(#1)}
+
+\newcommand{\Rm}[1]{\mathrm{Rm}(#1)}
+
+\newcommand{\Trm}[1][]{{\calT_{#1}^{\mathrm{rm}}}}
+\newcommand{\tildeTrm}{{\tilde{\calT}^{\mathrm{rm}}}}
+
+\newcommand{\Hone}{\H^{1}}
+\newcommand{\Hcurl}{\H(\mathrm{curl})}
+\newcommand{\Hdiv}{\H(\mathrm{div})}
+\newcommand{\Ltwo}{L^{2}}
+
+
+\newlength{\plotwidth}
+\newlength{\plotheight}
+
+\newlength{\subplotwidth}
+\newlength{\subplotheight}
+
+\setlength{\plotwidth}{7cm}
+\setlength{\plotheight}{7cm}
+
+\setlength{\subplotwidth}{0.4\textwidth}
+\setlength{\subplotheight}{\plotwidth}
+
+\newcommand{\irev}[1]{\textcolor{black}{#1}}
+\newcommand{\reva}{\textcolor{black}}
+\newcommand{\revb}{\textcolor{black}}
+\newcommand{\rev}{\textcolor{black}}
+\newcommand{\irevdos}[1]{\textcolor{blue}{#1}}
+\newcommand{\revados}{\textcolor{blue}}
+\newcommand{\revbdos}{\textcolor{blue}}
+\newcommand{\redosv}{\textcolor{blue}}
+\newcommand{\dO}{d\Omega}
+
+
+\pgfplotsset{surfBF/.style={surf,
+      opacity=0.7,
+      samples=30,
+      colormap/jet,
+    }}
+\pgfplotsset{meshBF/.style={mesh, color=black,
+      opacity=1, thick,
+      samples=2,
+    }}
+
+\pgfplotsset{surfBF1/.style={surf,
+      opacity=0.5,
+      samples=30,
+      colormap/blackwhite,
+    }}
+
+% Style to select only points from #1 to #2 (inclusive)
+\pgfplotsset{select coords between index/.style 2 args={
+      x filter/.code={
+          \ifnum\coordindex<#1\def\pgfmathresult{}\fi
+          \ifnum\coordindex>#2\def\pgfmathresult{}\fi
+        }
+    }}
+
+\newcommand{\todoVD}[2][]%
+{\todo[color=green!25,#1]{\footnotesize{\bf Vincent:} #2}}
+
+\newcommand{\todoJA}[2][]%
+{\todo[color=cyan!25,#1]{\footnotesize{\bf Julen:} #2}}
+
+\newcommand{\todoDP}[2][]%
+{\todo[color=blue!25,#1]{\footnotesize{\bf David:} #2}}
+
+\newcommand{\todoFC}[2][]%
+{\todo[color=red!25,#1]{\footnotesize{\bf Felipe:} #2}}
